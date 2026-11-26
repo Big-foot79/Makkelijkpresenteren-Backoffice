@@ -36,7 +36,7 @@ class TravionFeed extends Feed
             foreach ((new DelimitedFile($path, ';', header: true))->rows() as $r) {
                 $items->add([
                     'sku' => $r['ARTICLENR'] ?? null,
-                    'description' => Parse::text($r['DESCRIPTION'] ?? null, 500),
+                    'description' => Parse::description($r['DESCRIPTION'] ?? null, 500),
                     'ean' => Parse::ean($r['EANNR'] ?? null),
                     'mpn' => Parse::text($r['OEMNR'] ?? null, 64),
                     'brand' => Parse::text($r['BRAND'] ?? null, 100),

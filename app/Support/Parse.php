@@ -20,6 +20,18 @@ class Parse
     }
 
     /**
+     * A product description: trimmed, without stray punctuation at the start
+     * (Copaco delivers descriptions like ". AC1750 Wireless ...") and with single spaces.
+     */
+    public static function description(mixed $value, ?int $max = null): ?string
+    {
+        $value = preg_replace('/\s+/u', ' ', (string) ($value ?? ''));
+        $value = preg_replace('/^[\s.,;:\-–·]+/u', '', $value);
+
+        return self::text($value, $max);
+    }
+
+    /**
      * EAN/GTIN as digits only, normalised to EAN-13 where possible
      * (UPC-12 gets a leading zero, GTIN-14 with a leading zero loses it).
      */

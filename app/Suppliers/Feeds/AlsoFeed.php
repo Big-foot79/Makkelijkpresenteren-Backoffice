@@ -54,7 +54,7 @@ class AlsoFeed extends Feed
             $writer->add([
                 'sku' => $r[0],
                 'ean' => Parse::ean($r[1]),
-                'description' => Parse::text($r[5], 500),
+                'description' => Parse::description($r[5], 500),
                 'net_price' => Parse::decimal($r[7]) ?? Parse::decimal($r[15]),
                 'mpn' => Parse::text($r[8], 64),
                 'brand' => Parse::text($r[9], 100),

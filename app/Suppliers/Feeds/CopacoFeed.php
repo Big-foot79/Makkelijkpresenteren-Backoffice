@@ -40,7 +40,7 @@ class CopacoFeed extends Feed
                     'sku' => $r[0] ?? null,
                     'mpn' => Parse::text($r[1] ?? null, 64),
                     'brand' => Parse::text($r[2] ?? null, 100),
-                    'description' => Parse::text($r[3] ?? null, 500),
+                    'description' => Parse::description($r[3] ?? null, 500),
                     'net_price' => Parse::decimal($r[5] ?? null),
                     'category' => Parse::text($r[7] ?? null, 150),
                     'ean' => Parse::ean($r[9] ?? null),

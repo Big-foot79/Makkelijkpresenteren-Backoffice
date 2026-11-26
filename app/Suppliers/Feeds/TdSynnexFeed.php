@@ -58,7 +58,7 @@ class TdSynnexFeed extends Feed
         foreach ((new DelimitedFile($material, ';', self::ENCODING))->rows() as $r) {
             $writer->add([
                 'sku' => $r[0] ?? null,
-                'description' => Parse::text($r[2] ?? null, 500),
+                'description' => Parse::description($r[2] ?? null, 500),
                 'long_description' => Parse::text($r[3] ?? null),
                 'mpn' => Parse::text($r[4] ?? null, 64),
                 // Global manufacturer name is consistent across countries; the local one is the fallback.

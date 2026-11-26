@@ -46,4 +46,11 @@ class ParseTest extends TestCase
     {
         $this->assertSame($expected, Parse::ean($input));
     }
+
+    public function test_description_loses_leading_punctuation_and_double_spaces(): void
+    {
+        $this->assertSame('AC1750 Wireless Access Point', Parse::description(' . AC1750  Wireless Access Point '));
+        $this->assertSame('Scherm 55"', Parse::description('Scherm 55"'));
+        $this->assertNull(Parse::description(' . '));
+    }
 }
