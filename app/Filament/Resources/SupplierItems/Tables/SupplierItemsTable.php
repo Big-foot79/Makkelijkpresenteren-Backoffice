@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierItems\Tables;
 
+use App\Models\FavoriteBrand;
 use App\Models\SupplierItem;
 use App\Support\Parse;
 use Filament\Actions\Action;
@@ -14,6 +15,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class SupplierItemsTable
 {
@@ -88,6 +90,16 @@ class SupplierItemsTable
                 SelectFilter::make('supplier_id')
                     ->label('Leverancier')
                     ->relationship('supplier', 'name'),
+                SelectFilter::make('brand')
+                    ->label('Merk')
+                    ->multiple()
+                    ->searchable()
+                    ->options(fn () => FavoriteBrand::knownBrands(limit: 5000))
+                    // Case-insensitive, so IIYAMA and Iiyama from different suppliers both match.
+                    ->query(fn (Builder $query, array $data) => $query->when(
+                        $data['values'] ?? [],
+                        fn (Builder $q, array $brands) => $q->whereIn(DB::raw('lower(supplier_items.brand)'), array_map('mb_strtolower', $brands)),
+                    )),
                 TernaryFilter::make('is_listed')
                     ->label('In catalogus')
                     ->default(true),
