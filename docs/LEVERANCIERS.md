@@ -40,6 +40,19 @@ Kolomnummers zijn 0-gebaseerd. "Oud ID" is het `Supplier_Id` in de oude Postgres
 
 Geen adviesprijs in de gebruikte kolommen.
 
+**Alles op de SFTP-server** (stand 26 november 2026)
+
+| Bestand | Grootte | Ververst | Gebruik |
+|---|---|---|---|
+| `stock.txt` | ca. 10 MB | meerdere keren per dag (laatste 19:08) | voorraad |
+| `pricelist-2.txt.zip` | 2,4 MB | dagelijks ca. 05:00 | materiaal + prijs (in gebruik) |
+| `pricelist-1.txt.zip` | 2,4 MB | dagelijks ca. 05:00 | vermoedelijk variant van pricelist-2; nog uitzoeken |
+| `csell.txt` | 32 MB | dagelijks | cross-sell: accessoires en gerelateerde producten (kandidaat voor upsell) |
+| `ICEcat-productsheets.xml.zip` | 517 MB | dagelijks | Icecat-productdata via ALSO (kandidaat als verrijkingsbron naast Open Icecat) |
+| `ICEcat-vendors.txt` | 10 KB | dagelijks | merkenlijst bij de Icecat-data |
+| `ICEcat-productsheets.txt.zip` | 258 MB | juni 2024 | verouderd, negeren |
+| `/in`, `/out` | map | — | vermoedelijk voor de XML-bestelkoppeling |
+
 ## TD Synnex (DataPack Pro)
 
 Bestanden heten `<account>_<pakket>_yyyymmdd.zip`, dagelijks rond 08:00. Inhoud is **ANSI** (Windows-1252), `;`, geen kop.
