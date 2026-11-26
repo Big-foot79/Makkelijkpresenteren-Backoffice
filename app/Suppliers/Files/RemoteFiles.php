@@ -43,7 +43,10 @@ class RemoteFiles
                 'host' => $this->supplier->host,
                 'port' => $this->supplier->port ?: 22,
                 'username' => $this->supplier->username,
-                'password' => $this->supplier->password,
+                // With a key the password is only used as second step or fallback.
+                'password' => $this->supplier->password ?: null,
+                'privateKey' => $this->supplier->private_key ?: null,
+                'passphrase' => $this->supplier->passphrase ?: null,
                 'root' => $this->supplier->root ?: '/',
                 'timeout' => 60,
             ],

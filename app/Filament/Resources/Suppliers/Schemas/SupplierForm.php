@@ -5,9 +5,11 @@ namespace App\Filament\Resources\Suppliers\Schemas;
 use App\Models\Supplier;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class SupplierForm
@@ -39,6 +41,7 @@ class SupplierForm
                         Select::make('protocol')
                             ->label('Protocol')
                             ->options(['ftp' => 'FTP', 'sftp' => 'SFTP', 'local' => 'Lokale map (test)'])
+                            ->live()
                             ->required(),
                         TextInput::make('host')->label('Server'),
                         TextInput::make('port')->label('Poort')->numeric()->placeholder('21 / 22'),
@@ -48,7 +51,23 @@ class SupplierForm
                             ->password()
                             ->revealable()
                             ->dehydrated(fn (?string $state) => filled($state))
-                            ->helperText('Versleuteld opgeslagen. Leeg laten om het huidige wachtwoord te houden.'),
+                            ->placeholder(fn (?Supplier $record) => filled($record?->password) ? 'Ingesteld (leeg laten om te houden)' : null)
+                            ->helperText('Versleuteld opgeslagen. Bij SFTP met sleutel alleen nodig als de server ook een wachtwoord vraagt.'),
+                        Textarea::make('private_key')
+                            ->label('Private key (SFTP)')
+                            ->rows(4)
+                            ->visible(fn (Get $get) => $get('protocol') === 'sftp')
+                            ->dehydrated(fn (?string $state) => filled($state))
+                            ->formatStateUsing(fn () => null)
+                            ->placeholder(fn (?Supplier $record) => filled($record?->private_key) ? 'Ingesteld (leeg laten om te houden)' : '-----BEGIN OPENSSH PRIVATE KEY----- …')
+                            ->helperText('Plak de volledige sleutel (OpenSSH, PEM of PuTTY). Versleuteld opgeslagen.'),
+                        TextInput::make('passphrase')
+                            ->label('Wachtwoordzin van de sleutel')
+                            ->password()
+                            ->revealable()
+                            ->visible(fn (Get $get) => $get('protocol') === 'sftp')
+                            ->dehydrated(fn (?string $state) => filled($state))
+                            ->placeholder(fn (?Supplier $record) => filled($record?->passphrase) ? 'Ingesteld (leeg laten om te houden)' : null),
                         TextInput::make('root')->label('Map')->placeholder('/'),
                     ]),
                 Section::make('Instellingen')

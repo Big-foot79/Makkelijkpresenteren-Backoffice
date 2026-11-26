@@ -5,12 +5,14 @@ namespace Tests\Feature;
 use App\Enums\JobRunStatus;
 use App\Enums\UserRole;
 use App\Filament\Resources\SupplierItems\SupplierItemResource;
+use App\Filament\Resources\Suppliers\Pages\EditSupplier;
 use App\Filament\Resources\Suppliers\Pages\ListSuppliers;
 use App\Filament\Resources\Suppliers\SupplierResource;
 use App\Jobs\ImportSupplierFeed;
 use App\Mcp\Servers\BackofficeServer;
 use App\Mcp\Tools\BackofficeStatus;
 use App\Mcp\Tools\SearchSupplierItems;
+use App\Models\Change;
 use App\Models\JobRun;
 use App\Models\Supplier;
 use App\Models\SupplierItem;
@@ -115,5 +117,41 @@ class SupplierPanelAndMcpTest extends TestCase
         $this->assertSame('15 9 * * *', $events['import tdsynnex catalog']);
         $this->assertSame('45 6 * * *', $events['import copaco full']);
         $this->assertArrayNotHasKey('import also stock', $events->all());
+    }
+
+    public function test_sftp_key_and_passphrase_are_stored_encrypted_and_kept_when_left_empty(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $also = Supplier::where('code', 'also')->sole();
+
+        Livewire::test(EditSupplier::class, ['record' => $also->getRouteKey()])
+            ->fillForm([
+                'host' => 'sftp.example.test',
+                'username' => 'dp2',
+                'private_key' => "-----BEGIN OPENSSH PRIVATE KEY-----\nfictief\n-----END OPENSSH PRIVATE KEY-----",
+                'passphrase' => 'geheime-zin',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $also->refresh();
+        $this->assertStringContainsString('BEGIN OPENSSH', $also->private_key);
+        $this->assertSame('geheime-zin', $also->passphrase);
+        $this->assertStringNotContainsString('geheime-zin', (string) \DB::table('suppliers')->where('id', $also->id)->value('passphrase'));
+
+        // Saving again with the secret fields left empty keeps them.
+        Livewire::test(EditSupplier::class, ['record' => $also->getRouteKey()])
+            ->fillForm(['host' => 'sftp2.example.test'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $also->refresh();
+        $this->assertSame('sftp2.example.test', $also->host);
+        $this->assertSame('geheime-zin', $also->passphrase);
+        $this->assertStringContainsString('BEGIN OPENSSH', $also->private_key);
+
+        // Secrets never end up in the change history.
+        $this->assertFalse(Change::where('subject_type', $also->getMorphClass())->get()
+            ->contains(fn ($c) => str_contains(json_encode([$c->old_values, $c->new_values]), 'geheime-zin')));
     }
 }

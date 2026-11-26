@@ -19,13 +19,15 @@ class Supplier extends Model
 
     protected $guarded = [];
 
-    protected $hidden = ['password'];
+    protected $hidden = ['password', 'private_key', 'passphrase'];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
             'password' => 'encrypted',
+            'private_key' => 'encrypted',
+            'passphrase' => 'encrypted',
             'settings' => 'array',
             'stock_as_of' => 'datetime',
             'catalog_imported_at' => 'datetime',

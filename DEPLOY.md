@@ -44,7 +44,8 @@ Inloggen op `https://<jouw-domein>/admin`.
 De vier leveranciers (TD Synnex, ALSO, Travion, Copaco) worden bij de eerste migratie aangemaakt,
 **inactief en zonder inloggegevens**. Per leverancier, onder *Leveranciers → Leveranciers*:
 
-1. Vul server, gebruikersnaam en wachtwoord in (het wachtwoord wordt versleuteld opgeslagen).
+1. Vul server, gebruikersnaam en wachtwoord in. Bij SFTP met sleutel (ALSO) plak je ook de private key
+   en de wachtwoordzin; alles wordt versleuteld opgeslagen en nooit in de wijzigingshistorie gezet.
 2. Klik **Verbinding testen**: je ziet de bestanden op de server.
 3. Klik **Importeren** en kies catalogus en/of voorraad. Volg het resultaat onder *Werk → Runs*.
 4. Gaat dat goed, zet de leverancier op **Actief**. Vanaf dan draait de import volgens planning

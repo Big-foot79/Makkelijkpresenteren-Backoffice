@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 trait RecordsChanges
 {
     /** Attributes that are never stored in the change history. */
-    protected array $changeHistoryHidden = ['password', 'remember_token', 'updated_at', 'created_at'];
+    protected array $changeHistoryHidden = ['password', 'private_key', 'passphrase', 'remember_token', 'updated_at', 'created_at'];
 
     public static function bootRecordsChanges(): void
     {
