@@ -12,6 +12,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 /** Read-only search through the full supplier catalogues. Written only by the imports. */
@@ -31,7 +33,17 @@ class SupplierItemResource extends Resource
 
     protected static ?string $navigationLabel = 'Artikelen';
 
-    protected static ?string $recordTitleAttribute = 'description';
+    protected static ?string $recordTitleAttribute = 'sku';
+
+    /** Page title and breadcrumb: brand + supplier article number (descriptions are long and messy). */
+    public static function getRecordTitle(?Model $record): string|Htmlable|null
+    {
+        if (! $record instanceof SupplierItem) {
+            return parent::getRecordTitle($record);
+        }
+
+        return trim(($record->brand ? $record->brand.' ' : '').$record->sku);
+    }
 
     public static function canCreate(): bool
     {

@@ -51,6 +51,7 @@ class SupplierPanelAndMcpTest extends TestCase
         $this->get(SupplierItemResource::getUrl())->assertOk()->assertSee('Draadloos presentatiesysteem');
         $this->get(SupplierItemResource::getUrl('view', ['record' => $item]))->assertOk()
             ->assertSee('lokaal magazijn (1 dag)')
+            ->assertSee('VOORBEELDMERK 1000001')
             ->assertSee('Ruim op voorraad');
     }
 
