@@ -37,7 +37,7 @@ class SupplierItem extends Model
         ];
     }
 
-    /** Adds `stock_quantity` (sum over locations in the supplier's current stock run) to each row. */
+    /** Adds `stock_quantity` (over the locations in the supplier's current run, see config stock.locations). */
     public function scopeWithCurrentStock(Builder $query): void
     {
         $query->addSelect([
@@ -46,7 +46,23 @@ class SupplierItem extends Model
                 ->whereColumn('supplier_stock.supplier_id', 'supplier_items.supplier_id')
                 ->whereColumn('supplier_stock.sku', 'supplier_items.sku')
                 ->whereColumn('supplier_stock.job_run_id', 'suppliers.current_stock_run_id')
-                ->selectRaw('sum(supplier_stock.quantity)'),
+                ->selectRaw(config('backoffice.stock.locations') === 'sum' ? 'sum(supplier_stock.quantity)' : 'max(supplier_stock.quantity)'),
+        ]);
+    }
+
+    /** Link to this article on the supplier's own website, from the supplier's url template. */
+    public function supplierUrl(): ?string
+    {
+        $template = $this->supplier?->setting('product_url');
+
+        if (! $template) {
+            return null;
+        }
+
+        return strtr($template, [
+            '{sku}' => rawurlencode($this->sku),
+            '{ean}' => rawurlencode((string) $this->ean),
+            '{mpn}' => rawurlencode((string) $this->mpn),
         ]);
     }
 

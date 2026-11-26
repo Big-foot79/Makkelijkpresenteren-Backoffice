@@ -49,7 +49,9 @@ class StockAvailability
             ->groupBy('i.ean', 's.id', 's.name', 's.code', 's.stock_as_of', 'i.sku')
             ->select([
                 'i.ean', 'i.sku', 's.name as supplier', 's.code as supplier_code', 's.stock_as_of',
-                DB::raw('coalesce(sum(st.quantity), 0) as quantity'),
+                DB::raw(config('backoffice.stock.locations') === 'sum'
+                    ? 'coalesce(sum(st.quantity), 0) as quantity'
+                    : 'coalesce(max(st.quantity), 0) as quantity'),
                 DB::raw('min(st.next_date) as next_date'),
                 DB::raw('count(st.id) as stock_lines'),
             ])

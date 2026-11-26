@@ -4,7 +4,9 @@ namespace App\Filament\Resources\SupplierItems\Tables;
 
 use App\Models\SupplierItem;
 use App\Support\Parse;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -19,7 +21,7 @@ class SupplierItemsTable
     {
         return $table
             ->defaultSort('description')
-            ->modifyQueryUsing(fn (Builder $query) => $query->select('supplier_items.*')->withCurrentStock()->with('supplier:id,name'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->select('supplier_items.*')->withCurrentStock()->with('supplier:id,name,settings'))
             ->searchPlaceholder('EAN, artikelnummer, merk of omschrijving')
             ->columns([
                 TextColumn::make('supplier.name')
@@ -98,6 +100,13 @@ class SupplierItemsTable
             ])
             ->recordActions([
                 ViewAction::make(),
+                Action::make('open_supplier')
+                    ->hiddenLabel()
+                    ->tooltip(fn (SupplierItem $record) => 'Bekijk bij '.$record->supplier->name)
+                    ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                    ->color('gray')
+                    ->visible(fn (SupplierItem $record) => filled($record->supplierUrl()))
+                    ->url(fn (SupplierItem $record) => $record->supplierUrl(), shouldOpenInNewTab: true),
             ]);
     }
 }

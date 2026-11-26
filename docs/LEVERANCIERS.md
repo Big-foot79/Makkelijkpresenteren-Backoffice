@@ -101,8 +101,13 @@ Alle bestanden koppelen op `Matnr`; alleen de MaterialFile bevat de EAN.
 | 1 | voorraad |
 | 2 | verwachte datum (`DD.MM.YYYY`) bij voorraad 0 |
 | 3 | fabrikantnummer |
-| 4 | magazijn: 1818 = lokaal (1 dag), 1854 = centraal (2–7 dagen) |
+| 4 | magazijn: 1818 = lokaal (1 dag), 1854 = centraal (2–7 dagen); in de praktijk ook 1855, vaak met exact dezelfde voorraad als 1818 |
 | 5 | categorie: 1 = leverbaar, 4 = besteld bij fabrikant, 9 = niet leverbaar, geen order |
+
+Omdat 1855 dezelfde voorraad lijkt te melden als 1818, telt de backoffice per leverancier het **hoogste**
+magazijn, niet de som (`STOCK_LOCATIONS=max`). Nog navragen bij TD Synnex wat 1855 is.
+
+Sommige artikelen hebben als korte omschrijving alleen `^`; dan wordt de lange omschrijving gebruikt.
 
 Speciale datums in kolom 2 betekenen *allocatie* en *levertijd overschreden*, geen echte datum. In de
 handleiding staan 17.11.2016 en 15.12.2016, met de opmerking dat ze **jaarlijks wijzigen**: niet hard coderen,

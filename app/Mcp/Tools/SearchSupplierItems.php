@@ -40,7 +40,7 @@ class SearchSupplierItems extends Tool
         $items = SupplierItem::query()
             ->select('supplier_items.*')
             ->withCurrentStock()
-            ->with('supplier:id,name,code,stock_as_of')
+            ->with('supplier:id,name,code,stock_as_of,settings')
             ->when(! ($validated['include_delisted'] ?? false), fn (Builder $q) => $q->where('is_listed', true))
             ->when($validated['supplier'] ?? null, fn (Builder $q, string $code) => $q->whereIn('supplier_id', Supplier::where('code', $code)->select('id')))
             ->where(function (Builder $q) use ($search, $ean) {
@@ -80,6 +80,7 @@ class SearchSupplierItems extends Tool
                 'is_listed' => $item->is_listed,
                 'stock_quantity' => $item->stock_quantity !== null ? (int) $item->stock_quantity : null,
                 'stock_as_of' => $item->supplier->stock_as_of?->toIso8601String(),
+                'supplier_url' => $item->supplierUrl(),
             ])->all(),
             'availability_by_ean' => (object) $availability->map(fn (array $a) => [
                 'status' => $a['status'],

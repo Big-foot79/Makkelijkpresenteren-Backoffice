@@ -79,7 +79,8 @@ class SupplierForm
                             ->valueLabel('Waarde')
                             ->helperText(fn (?Supplier $record) => 'Bekende instellingen: '
                                 .(self::SETTING_HELP[$record?->code] ?? '—')
-                                .'. Planning als cron in Nederlandse tijd, bijv. "20 9 * * *" = dagelijks 09:20.'),
+                                .'. Planning als cron in Nederlandse tijd, bijv. "20 9 * * *" = dagelijks 09:20.'
+                                .' product_url: link naar het artikel bij de leverancier, met {sku}, {ean} of {mpn}.'),
                     ]),
             ]);
     }

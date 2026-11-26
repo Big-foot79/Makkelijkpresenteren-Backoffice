@@ -10,6 +10,11 @@ return [
         // 1 up to this = "beperkt", 0 = "op nalevering". Never summed across suppliers.
         'ample_above' => (int) env('STOCK_AMPLE_ABOVE', 5),
 
+        // How stock in several warehouses of ONE supplier is combined: 'max' (default, safe when a
+        // supplier reports the same stock under two warehouse codes, as TD Synnex 1818/1855 seems
+        // to do) or 'sum' (when the warehouses really hold separate stock).
+        'locations' => env('STOCK_LOCATIONS', 'max'),
+
         // A new stock list with fewer rows than this share of the previous one is rejected,
         // so a truncated or empty file never wipes out the stock.
         'min_rows_ratio' => (float) env('STOCK_MIN_ROWS_RATIO', 0.5),

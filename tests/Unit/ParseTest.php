@@ -52,5 +52,6 @@ class ParseTest extends TestCase
         $this->assertSame('AC1750 Wireless Access Point', Parse::description(' . AC1750  Wireless Access Point '));
         $this->assertSame('Scherm 55"', Parse::description('Scherm 55"'));
         $this->assertNull(Parse::description(' . '));
+        $this->assertNull(Parse::description('^'));
     }
 }

@@ -6,9 +6,11 @@ use App\Filament\Resources\SupplierItems\SupplierItemResource;
 use App\Models\SupplierItem;
 use App\Models\SupplierStock;
 use App\Suppliers\StockAvailability;
+use Filament\Actions\Action;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\HtmlString;
 
 class SupplierItemInfolist
@@ -32,7 +34,16 @@ class SupplierItemInfolist
                     ->schema([
                         TextEntry::make('description')->label('Omschrijving')->columnSpanFull(),
                         TextEntry::make('supplier.name')->label('Leverancier'),
-                        TextEntry::make('sku')->label('Artikelnummer leverancier')->fontFamily('mono')->copyable(),
+                        TextEntry::make('sku')
+                            ->label('Artikelnummer leverancier')
+                            ->fontFamily('mono')
+                            ->copyable()
+                            ->suffixAction(fn (SupplierItem $record) => $record->supplierUrl()
+                                ? Action::make('open_supplier')
+                                    ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                                    ->tooltip('Bekijk bij '.$record->supplier->name)
+                                    ->url($record->supplierUrl(), shouldOpenInNewTab: true)
+                                : null),
                         TextEntry::make('ean')->label('EAN')->fontFamily('mono')->copyable()->placeholder('—'),
                         TextEntry::make('mpn')->label('Fabrikantnummer')->fontFamily('mono')->placeholder('—'),
                         TextEntry::make('brand')->label('Merk')->placeholder('—'),

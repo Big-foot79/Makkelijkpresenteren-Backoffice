@@ -28,6 +28,11 @@ class Parse
         $value = preg_replace('/\s+/u', ' ', (string) ($value ?? ''));
         $value = preg_replace('/^[\s.,;:\-–·]+/u', '', $value);
 
+        // Placeholders like "^" or "-" are no description.
+        if (! preg_match('/[\p{L}\p{N}]/u', $value)) {
+            return null;
+        }
+
         return self::text($value, $max);
     }
 

@@ -154,4 +154,31 @@ class SupplierPanelAndMcpTest extends TestCase
         $this->assertFalse(Change::where('subject_type', $also->getMorphClass())->get()
             ->contains(fn ($c) => str_contains(json_encode([$c->old_values, $c->new_values]), 'geheime-zin')));
     }
+
+    public function test_items_link_to_the_supplier_website_and_warehouses_are_not_double_counted(): void
+    {
+        $item = $this->seedItem();
+        $item->supplier->refresh();
+        // The same stock reported under a second warehouse code must not double the quantity.
+        SupplierStock::create(['supplier_id' => $item->supplier_id, 'job_run_id' => $item->supplier->current_stock_run_id, 'sku' => '1000001', 'quantity' => 12, 'location' => '1855']);
+
+        $this->assertSame(
+            'https://intouch.tdsynnex.com/InTouch/MVC/Product/ProductDetails?productId=1000001',
+            $item->fresh()->supplierUrl(),
+        );
+        $this->assertSame(12, (int) SupplierItem::query()->select('supplier_items.*')->withCurrentStock()->find($item->id)->stock_quantity);
+
+        $this->actingAs(User::factory()->create());
+        $this->get(SupplierItemResource::getUrl('view', ['record' => $item]))
+            ->assertOk()
+            ->assertSee('Bekijk bij TD Synnex')
+            ->assertSee('productId=1000001', escape: false);
+
+        $agent = User::factory()->create(['role' => UserRole::Agent]);
+        BackofficeServer::actingAs($agent)
+            ->tool(SearchSupplierItems::class, ['query' => '8712345678906'])
+            ->assertStructuredContentPath('items.0.stock_quantity', 12)
+            ->assertStructuredContentPath('availability_by_ean.8712345678906.best_quantity', 12)
+            ->assertSee('productId=1000001');
+    }
 }
