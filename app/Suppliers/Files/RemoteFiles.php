@@ -145,6 +145,24 @@ class RemoteFiles
         return $found;
     }
 
+    /** @return list<string> names of the files in a ZIP, for error messages */
+    public function zipEntries(string $zipPath): array
+    {
+        $zip = new ZipArchive;
+
+        if ($zip->open($zipPath) !== true) {
+            return [];
+        }
+
+        $names = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $names[] = $zip->getNameIndex($i);
+        }
+        $zip->close();
+
+        return array_values(array_filter($names));
+    }
+
     /** Lists the root of the server; used by the "Verbinding testen" button. */
     public function listing(): array
     {

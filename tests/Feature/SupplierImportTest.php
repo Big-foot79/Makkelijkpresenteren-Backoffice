@@ -170,6 +170,34 @@ class SupplierImportTest extends TestCase
         $this->assertSame($runs[2], $supplier->fresh()->current_stock_run_id);
     }
 
+    public function test_td_synnex_finds_files_inside_the_zip_whatever_their_exact_name(): void
+    {
+        $supplier = $this->supplierWithFiles('tdsynnex', [
+            '771216_A_20261126.zip' => [
+                'MaterialFile_771216_20261126.TXT' => $this->tdMaterial(),
+                'CustSpecificQty_771216_20261126.TXT' => "0012345;1000001;5;1,00\r\n",
+                'CustSpecific_771216_20261126.TXT' => "0012345;1000001;1.020,50;EUR;\r\n",
+            ],
+        ]);
+
+        $run = $this->import($supplier, 'catalog');
+
+        $this->assertSame(JobRunStatus::Succeeded, $run->status, (string) $run->log);
+        $this->assertSame('1020.50', SupplierItem::where('sku', '1000001')->value('net_price'));
+    }
+
+    public function test_a_zip_without_the_expected_file_lists_its_contents(): void
+    {
+        $supplier = $this->supplierWithFiles('tdsynnex', [
+            '771216_A_20261126.zip' => ['Iets_anders.txt' => 'x'],
+        ]);
+
+        $run = $this->import($supplier, 'catalog');
+
+        $this->assertSame(JobRunStatus::Failed, $run->status);
+        $this->assertStringContainsString('Inhoud: Iets_anders.txt', $run->log);
+    }
+
     public function test_a_missing_file_fails_the_run_with_a_clear_message(): void
     {
         $supplier = $this->supplierWithFiles('tdsynnex', []);

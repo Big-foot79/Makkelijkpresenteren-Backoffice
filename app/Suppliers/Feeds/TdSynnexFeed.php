@@ -50,8 +50,9 @@ class TdSynnexFeed extends Feed
         $this->logFile($run, $file);
 
         $zip = $files->download($file['path']);
-        $material = $this->entry($files->unzip($zip, '/_MaterialFile_.*\.txt$/i'), 'MaterialFile');
-        $prices = $files->unzip($zip, '/_CustSpecific_\d{8}\.txt$/i');
+        $material = $this->entry($files->unzip($zip, '/MaterialFile/i'), 'MaterialFile', $files, $zip);
+        // CustSpecific, but not CustSpecificQty (quantity breaks).
+        $prices = $files->unzip($zip, '/CustSpecific(?!Qty)/i');
 
         $writer = $this->items($run);
 
@@ -108,7 +109,7 @@ class TdSynnexFeed extends Feed
         $this->logFile($run, $file);
 
         $zip = $files->download($file['path']);
-        $path = $this->entry($files->unzip($zip, '/_StockFile_.*\.txt$/i'), 'StockFile');
+        $path = $this->entry($files->unzip($zip, '/StockFile/i'), 'StockFile', $files, $zip);
 
         // TD Synnex marks "on allocation" and "delivery overdue" with fixed fake dates that change
         // every year, so they live in the supplier settings.
@@ -143,10 +144,15 @@ class TdSynnexFeed extends Feed
     }
 
     /** @param  array<string, string>  $entries */
-    private function entry(array $entries, string $what): string
+    private function entry(array $entries, string $what, RemoteFiles $files, string $zip): string
     {
         if ($entries === []) {
-            throw new RuntimeException("Geen {$what} gevonden in het ZIP-bestand van TD Synnex.");
+            throw new RuntimeException(sprintf(
+                'Geen %s gevonden in %s. Inhoud: %s',
+                $what,
+                basename($zip),
+                implode(', ', $files->zipEntries($zip)) ?: '(leeg)',
+            ));
         }
 
         return reset($entries);
