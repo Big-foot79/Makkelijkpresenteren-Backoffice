@@ -47,13 +47,14 @@ Lokaal testen met de MCP Inspector:
 php artisan mcp:inspector mcp
 ```
 
-## Tools (fase 1)
+## Tools
 
 | Tool | Soort | Wat het doet |
 |---|---|---|
-| `backoffice-status` | Lezen | Overzicht: open taken per soort, runs van de laatste 24 uur, mislukte runs |
+| `backoffice-status` | Lezen | Overzicht: open taken per soort, runs van de laatste 24 uur, en per leverancier hoe vers voorraad en catalogus zijn |
 | `list-open-tasks` | Lezen | Open taken, optioneel gefilterd op soort |
 | `list-job-runs` | Lezen | Recente runs, optioneel alleen mislukte of van één type, met samenvatting |
+| `search-supplier-items` | Lezen | Leveranciersartikelen zoeken op EAN, artikelnummer, fabrikantnummer, merk of omschrijving; met inkoopprijs, adviesprijs, voorraad per leverancier en de beschikbaarheid zoals op de site |
 
 ## Gepland
 

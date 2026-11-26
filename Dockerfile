@@ -6,8 +6,8 @@
 FROM serversideup/php:8.4-fpm-nginx AS base
 
 USER root
-# intl is required by Filament, zip for supplier ZIP files
-RUN install-php-extensions intl zip
+# intl for Filament, zip and ftp for the supplier imports (SFTP is pure PHP)
+RUN install-php-extensions intl zip ftp
 USER www-data
 
 ############################################

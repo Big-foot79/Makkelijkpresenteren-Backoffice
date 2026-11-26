@@ -18,6 +18,17 @@ WooCommerce volgt.
 | `changes` | Wijzigingshistorie: wie (gebruiker, agent, job, systeem), via welk kanaal, oud en nieuw. |
 | `jobs`, `failed_jobs` | Laravel-queue (database-driver). |
 
+## Fase 2 (leveranciersdata) — aanwezig
+
+| Tabel | Inhoud |
+|---|---|
+| `suppliers` | De vier distributeurs met verbinding (wachtwoord versleuteld), instellingen (bestandsnamen, planning, speciale TD-datums), de actuele voorraadrun en wanneer catalogus en voorraad zijn ingelezen. |
+| `supplier_items` | De volledige catalogus per leverancier: artikelnummer, EAN (genormaliseerd naar EAN-13), fabrikantnummer, merk, omschrijving, inkoopprijs, toeslag, adviesprijs (alleen TD Synnex), EOL-status en opvolger. `is_listed = false` als het artikel niet meer in de catalogus staat. |
+| `supplier_stock` | Voorraadregels per importrun (per magazijn bij TD Synnex), met verwachte datum en aantallen. Alleen de run in `suppliers.current_stock_run_id` telt; de vorige blijft bewaard als reserve, oudere worden opgeruimd. |
+
+Importprofielen per leverancier staan in `app/Suppliers/Feeds`, de bestandsindeling in
+[LEVERANCIERS.md](LEVERANCIERS.md). De voorraadregel voor de site zit in `App\Suppliers\StockAvailability`.
+
 ## Volgende fases — gepland
 
 | Object | Belangrijkste velden | Koppelt aan |
@@ -25,9 +36,6 @@ WooCommerce volgt.
 | **Product** | Intern ID, EAN, Odoo-code, merk, fabrikantnummer, titel, status, Woo-ID, Odoo-ID | Kern |
 | Prijs (per product) | Adviesprijs, laagst bekende inkoop (berekend), margeopslag, Odoo-verkoopprijs, webshopprijs | Product |
 | Verrijking | Icecat-data, attributen, AI-tekst (concept/akkoord), afbeeldingen | Product |
-| Leverancier | Naam, importprofiel (FTP, formaat, mapping), bestelkoppeling, inloggegevens | Leveranciersartikel, Inkooporder |
-| Leveranciersartikel | Leveranciersnummer, fabrikantnummer, EAN, catalogusprijs, inkoopprijs, EOL/opvolger, laatst gezien | Leverancier; Product via EAN |
-| Voorraadstand | Aantal, magazijn, verwachte datum, datum van de lijst (per dag bewaard) | Leveranciersartikel |
 | Fabrikant | Naam, contactpersonen, mailtemplate voor bid-aanvraag | Bid, Bid-aanvraag |
 | Bid-aanvraag | Aanleiding (webshoporder of offerte), regels, status, mailthread | Fabrikant, Webshoporder |
 | Bid | Bidnummer, fabrikant, distributeur, prijs, eindklant (optioneel), bron, status | Product, Leverancier |

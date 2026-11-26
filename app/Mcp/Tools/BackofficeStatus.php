@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Enums\JobRunStatus;
 use App\Enums\TaskKind;
 use App\Models\JobRun;
+use App\Models\Supplier;
 use App\Models\Task;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -15,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
-#[Description('Overview of the backoffice right now: open tasks per kind and job runs of the last 24 hours (total, failed, still running). Use this first to see what needs attention.')]
+#[Description('Overview of the backoffice right now: open tasks per kind and job runs of the last 24 hours (total, failed, still running) and per supplier how fresh its stock list and catalogue are. Use this first to see what needs attention.')]
 class BackofficeStatus extends Tool
 {
     public function handle(Request $request): ResponseFactory
@@ -43,6 +44,15 @@ class BackofficeStatus extends Tool
                 'failed' => (clone $runs)->where('status', JobRunStatus::Failed)->count(),
                 'running' => (clone $runs)->where('status', JobRunStatus::Running)->count(),
             ],
+            'suppliers' => Supplier::orderBy('name')->get()->map(fn (Supplier $s) => [
+                'name' => $s->name,
+                'code' => $s->code,
+                'active' => $s->is_active,
+                'stock_as_of' => $s->stock_as_of?->toIso8601String(),
+                'stock_counts_on_site' => ! $s->stockIsStale(),
+                'catalog_imported_at' => $s->catalog_imported_at?->toIso8601String(),
+                'listed_items' => $s->items()->where('is_listed', true)->count(),
+            ])->all(),
         ]);
     }
 

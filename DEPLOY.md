@@ -39,6 +39,22 @@ php artisan make:filament-user
 
 Inloggen op `https://<jouw-domein>/admin`.
 
+## Leveranciers instellen
+
+De vier leveranciers (TD Synnex, ALSO, Travion, Copaco) worden bij de eerste migratie aangemaakt,
+**inactief en zonder inloggegevens**. Per leverancier, onder *Leveranciers → Leveranciers*:
+
+1. Vul server, gebruikersnaam en wachtwoord in (het wachtwoord wordt versleuteld opgeslagen).
+2. Klik **Verbinding testen**: je ziet de bestanden op de server.
+3. Klik **Importeren** en kies catalogus en/of voorraad. Volg het resultaat onder *Werk → Runs*.
+4. Gaat dat goed, zet de leverancier op **Actief**. Vanaf dan draait de import volgens planning
+   (instellingen `cron_*`, Nederlandse tijd). De planning wordt bij het starten van de scheduler
+   ingelezen: herstart de service `scheduler` na het wijzigen van een planning of het (de)activeren
+   van een leverancier.
+
+Gedownloade bestanden blijven 7 dagen bewaard in het volume `storage` (`imports/<leverancier>/`),
+handig om een mislukte import na te kijken.
+
 ## AI-agent koppelen (MCP)
 
 Zie [docs/MCP.md](docs/MCP.md). Kort:

@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Red,
             ])
-            ->navigationGroups(['Werk', 'Systeem'])
+            ->navigationGroups(['Werk', 'Leveranciers', 'Systeem'])
             ->databaseNotifications(false)
             ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

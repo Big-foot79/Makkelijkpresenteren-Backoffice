@@ -19,8 +19,8 @@ en een MCP-server zodat AI-agents taken kunnen uitvoeren.
 
 ## Fasering
 
-1. **Fundament** — gebruikers en rollen, runs, taken, wijzigingshistorie, MCP-server met leestools. *(deze opzet)*
-2. Leveranciersdata — importprofielen TD Synnex, Copaco, Travion, ALSO; voorraad met grens van 5 dagen.
+1. **Fundament** — gebruikers en rollen, runs, taken, wijzigingshistorie, MCP-server met leestools. *(klaar)*
+2. **Leveranciersdata** — importprofielen TD Synnex, Copaco, Travion, ALSO; voorraad met grens van 5 dagen. *(klaar)*
 3. Producten en shop — productmodel, prijsvelden, eerste sync met de nieuwe Woo-shop, webhooks.
 4. Verrijking — Open Icecat, attributen, AI-tekst ter goedkeuring, afbeeldingen.
 5. Bids — fabrikanten, bid-aanvragen, bidmails herkennen, TD Synnex projectprices.

@@ -20,6 +20,8 @@ x-app-env: &app-env
   SESSION_DRIVER: database
   CACHE_STORE: database
   QUEUE_CONNECTION: database
+  # Longer than the longest import (job timeout 1800 s), so a running import is never started twice.
+  DB_QUEUE_RETRY_AFTER: 1900
 
 services:
   app:
@@ -47,7 +49,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3", "--timeout=900", "--sleep=3"]
+    command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3", "--timeout=1800", "--sleep=3"]
     environment:
       <<: *app-env
       AUTORUN_ENABLED: "false"
