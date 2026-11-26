@@ -87,6 +87,24 @@ class SupplierImportTest extends TestCase
         $this->assertFalse(SupplierItem::where('sku', '9999999')->exists(), 'Price-only skus must not create items');
     }
 
+    public function test_placeholder_eans_and_readable_categories(): void
+    {
+        $supplier = $this->supplierWithFiles('tdsynnex', [
+            '771216_A_20261126.zip' => ['MaterialFile.txt' => $this->tdMaterial([
+                [0 => '3265140', 2 => 'Kabel', 7 => '000181006400000001', 9 => '3265140000007', 11 => 'Kabels', 13 => 'Netwerkkabels', 15 => 'Patchkabels'],
+                [0 => '1000001', 7 => '000181006400000002', 9 => '8712345678906'],
+            ])],
+        ]);
+
+        $run = $this->import($supplier, 'catalog');
+
+        $this->assertNull(SupplierItem::where('sku', '3265140')->value('ean'));
+        $this->assertSame('Patchkabels', SupplierItem::where('sku', '3265140')->value('category'));
+        $this->assertSame('8712345678906', SupplierItem::where('sku', '1000001')->value('ean'));
+        $this->assertSame('000181006400000002', SupplierItem::where('sku', '1000001')->value('category'));
+        $this->assertStringContainsString('1 nep-EANs', $run->log);
+    }
+
     public function test_items_missing_from_a_new_catalogue_are_delisted(): void
     {
         $supplier = $this->supplierWithFiles('tdsynnex', [

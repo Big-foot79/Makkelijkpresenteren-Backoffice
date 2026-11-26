@@ -31,6 +31,8 @@ class ItemWriter
 
     private int $skipped = 0;
 
+    private int $placeholderEans = 0;
+
     private readonly CarbonImmutable $startedAt;
 
     public function __construct(private readonly Supplier $supplier, private readonly JobRun $run)
@@ -50,6 +52,14 @@ class ItemWriter
         }
 
         $values = array_intersect_key($item, array_flip(self::COLUMNS));
+
+        // Placeholder EANs built from the supplier's own article number (TD Synnex: 3265140 ->
+        // 3265140000007) never match a real product; keep them out.
+        if (! empty($values['ean']) && ctype_digit($sku) && strlen($sku) >= 5
+            && str_starts_with(ltrim($values['ean'], '0'), ltrim($sku, '0'))) {
+            $values['ean'] = null;
+            $this->placeholderEans++;
+        }
         $this->updateColumns += array_flip(array_keys($values));
 
         $this->buffer[$sku] = $values + [
@@ -150,6 +160,10 @@ class ItemWriter
 
         if ($this->skipped) {
             $summary .= sprintf(', %s regels overgeslagen', number_format($this->skipped, 0, ',', '.'));
+        }
+
+        if ($this->placeholderEans) {
+            $this->run->info(sprintf('%s nep-EANs (afgeleid van het artikelnummer) leeg gelaten', number_format($this->placeholderEans, 0, ',', '.')));
         }
 
         $this->run->info('Catalogus: '.$summary);

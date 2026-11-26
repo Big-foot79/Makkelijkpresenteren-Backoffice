@@ -64,7 +64,9 @@ class TdSynnexFeed extends Feed
                 'mpn' => Parse::text($r[4] ?? null, 64),
                 // Global manufacturer name is consistent across countries; the local one is the fallback.
                 'brand' => Parse::text($r[6] ?? null, 100) ?? Parse::text($r[5] ?? null, 100),
-                'category' => Parse::text($r[7] ?? null, 150),
+                // Readable product subclass / class / family; the ProdHier code only as last resort.
+                'category' => Parse::text($r[15] ?? null, 150) ?? Parse::text($r[13] ?? null, 150)
+                    ?? Parse::text($r[11] ?? null, 150) ?? Parse::text($r[7] ?? null, 150),
                 'is_kit' => strtoupper(trim($r[8] ?? '')) === 'Y',
                 'ean' => Parse::ean($r[9] ?? null),
                 'weight_kg' => Parse::decimal($r[19] ?? null),

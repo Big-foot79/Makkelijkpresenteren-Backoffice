@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierItems\Schemas;
 
+use App\Filament\Resources\SupplierItems\SupplierItemResource;
 use App\Models\SupplierItem;
 use App\Models\SupplierStock;
 use App\Suppliers\StockAvailability;
@@ -41,8 +42,20 @@ class SupplierItemInfolist
                             ->badge()
                             ->formatStateUsing(fn (?string $state) => SupplierItem::STATUSES[$state] ?? $state)
                             ->placeholder('Leverbaar'),
-                        TextEntry::make('follower_sku')->label('Opvolger')->placeholder('—'),
-                        TextEntry::make('long_description')->label('Lange omschrijving')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('follower_sku')
+                            ->label('Opvolger')
+                            ->placeholder('—')
+                            ->url(fn (SupplierItem $record) => ($follower = self::follower($record))
+                                ? SupplierItemResource::getUrl('view', ['record' => $follower])
+                                : null)
+                            ->formatStateUsing(fn (?string $state, SupplierItem $record) => ($follower = self::follower($record))
+                                ? $state.' · '.$follower->description
+                                : $state),
+                        TextEntry::make('long_description')
+                            ->label('Lange omschrijving')
+                            ->columnSpanFull()
+                            ->visible(fn (SupplierItem $record) => filled($record->long_description)
+                                && trim($record->long_description) !== trim((string) $record->description)),
                     ]),
                 Section::make('Prijs')
                     ->schema([
@@ -70,6 +83,19 @@ class SupplierItemInfolist
                             ->html(),
                     ]),
             ]);
+    }
+
+    private static function follower(SupplierItem $record): ?SupplierItem
+    {
+        if (blank($record->follower_sku)) {
+            return null;
+        }
+
+        static $cache = [];
+
+        return $cache[$record->id] ??= SupplierItem::where('supplier_id', $record->supplier_id)
+            ->where('sku', $record->follower_sku)
+            ->first();
     }
 
     private static function stockLines(SupplierItem $record): HtmlString
@@ -104,7 +130,12 @@ class SupplierItemInfolist
             '<li>%s: %d%s</li>',
             e($s['supplier']),
             $s['quantity'],
-            $s['counts'] ? '' : ' <span class="text-gray-500">(lijst te oud, telt niet)</span>',
+            match ($s['reason']) {
+                'no_list' => ' <span class="text-gray-500">(nog geen voorraadlijst ingelezen)</span>',
+                'stale' => ' <span class="text-gray-500">(lijst te oud, telt niet)</span>',
+                'not_in_list' => ' <span class="text-gray-500">(niet in de voorraadlijst)</span>',
+                default => '',
+            },
         ))->implode('');
 
         $next = $result['next_date'] ? ' · verwacht '.date('d-m-Y', strtotime($result['next_date'])) : '';

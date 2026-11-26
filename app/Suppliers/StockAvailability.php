@@ -68,6 +68,13 @@ class StockAvailability
                     'next_date' => $line->next_date ? substr($line->next_date, 0, 10) : null,
                     'stock_as_of' => $asOf?->toIso8601String(),
                     'counts' => $fresh && $line->stock_lines > 0,
+                    // Why a supplier does not count: no stock list yet, list too old, or item not in it.
+                    'reason' => match (true) {
+                        $asOf === null => 'no_list',
+                        ! $fresh => 'stale',
+                        $line->stock_lines == 0 => 'not_in_list',
+                        default => null,
+                    },
                 ];
             })->values();
 
