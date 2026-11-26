@@ -56,3 +56,4 @@ Beheer: <http://localhost:8000/admin> · MCP: <http://localhost:8000/mcp>
 - [DEPLOY.md](DEPLOY.md) — deployen op Coolify
 - [docs/MCP.md](docs/MCP.md) — AI-agents koppelen en beschikbare tools
 - [docs/DATAMODEL.md](docs/DATAMODEL.md) — tabellen en regels
+- [docs/LEVERANCIERS.md](docs/LEVERANCIERS.md) — bestanden en kolommen per leverancier
