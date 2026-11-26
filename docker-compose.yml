@@ -1,0 +1,105 @@
+# Docker Compose for Coolify ("Docker Compose" build pack).
+# Coolify fills the SERVICE_* variables automatically; set APP_KEY yourself
+# (see DEPLOY.md). Works locally too: `docker compose up --build`.
+
+x-app-env: &app-env
+  APP_NAME: "Makkelijkpresenteren Backoffice"
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY}
+  APP_URL: ${SERVICE_FQDN_APP:-http://localhost:8080}
+  APP_TIMEZONE: Europe/Amsterdam
+  APP_LOCALE: nl
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: ${MYSQL_DATABASE:-backoffice}
+  DB_USERNAME: ${SERVICE_USER_MYSQL:-backoffice}
+  DB_PASSWORD: ${SERVICE_PASSWORD_MYSQL:-backoffice}
+  SESSION_DRIVER: database
+  CACHE_STORE: database
+  QUEUE_CONNECTION: database
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      <<: *app-env
+      # Tells Coolify to route the domain to port 8080 of this container.
+      SERVICE_FQDN_APP_8080: ""
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Processes background jobs: imports, enrichment, Woo sync, supplier messages.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3", "--timeout=900", "--sleep=3"]
+    environment:
+      <<: *app-env
+      AUTORUN_ENABLED: "false"
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-queue"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Runs Laravel's scheduler: daily stock imports, polling supplier responses, nightly checks.
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    environment:
+      <<: *app-env
+      AUTORUN_ENABLED: "false"
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-backoffice}
+      MYSQL_USER: ${SERVICE_USER_MYSQL:-backoffice}
+      MYSQL_PASSWORD: ${SERVICE_PASSWORD_MYSQL:-backoffice}
+      MYSQL_ROOT_PASSWORD: ${SERVICE_PASSWORD_MYSQLROOT:-root}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${SERVICE_PASSWORD_MYSQLROOT:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  storage:
+  mysql-data:
