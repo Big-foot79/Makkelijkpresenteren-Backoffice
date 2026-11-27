@@ -21,6 +21,20 @@ class Actor
 
     private static ?string $via = null;
 
+    /** The user who started the queued job that is running now (set from the job payload). */
+    private static ?int $startedBy = null;
+
+    public static function setStartedBy(?int $userId): void
+    {
+        self::$startedBy = $userId;
+    }
+
+    /** Who to credit for starting a run: the logged-in user, or whoever queued the current job. */
+    public static function startedBy(): ?int
+    {
+        return self::user()?->getKey() ?? self::$startedBy;
+    }
+
     public static function asJob(JobRun $run, Closure $callback): mixed
     {
         $previous = [self::$jobRun, self::$via];

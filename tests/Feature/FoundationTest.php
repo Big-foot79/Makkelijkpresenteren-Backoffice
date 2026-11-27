@@ -12,7 +12,9 @@ use App\Models\JobRun;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use RuntimeException;
+use Tests\Fixtures\TrackedJob;
 use Tests\TestCase;
 
 class FoundationTest extends TestCase
@@ -94,5 +96,18 @@ class FoundationTest extends TestCase
 
         $change = Change::where('subject_type', $user->getMorphClass())->sole();
         $this->assertArrayNotHasKey('password', $change->new_values);
+    }
+
+    public function test_a_run_started_from_the_panel_shows_who_started_it_also_for_follow_up_jobs(): void
+    {
+        config(['queue.default' => 'database']);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        Bus::dispatch(new TrackedJob(chain: true));
+        auth()->logout();
+        $this->artisan('queue:work', ['--stop-when-empty' => true])->assertSuccessful();
+
+        $this->assertSame([$user->id, $user->id], JobRun::orderBy('id')->pluck('triggered_by_user_id')->all());
     }
 }

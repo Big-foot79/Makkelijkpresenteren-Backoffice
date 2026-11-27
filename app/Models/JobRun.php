@@ -49,7 +49,7 @@ class JobRun extends Model
             'status' => JobRunStatus::Running,
             'subject_type' => $subject?->getMorphClass(),
             'subject_id' => $subject?->getKey(),
-            'triggered_by_user_id' => Actor::user()?->getKey(),
+            'triggered_by_user_id' => Actor::startedBy(),
             'input' => $input ?: null,
             'attempts' => 1,
             'started_at' => now(),
