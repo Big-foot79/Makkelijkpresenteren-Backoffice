@@ -13,7 +13,7 @@ use RuntimeException;
 /**
  * ALSO (SFTP). Stock: stock.txt, tab-separated with header, refreshed several times a day.
  * Catalogue: a ZIP with one text file. ALSO lets us choose the columns of pricelist-1 and -2:
- * - with a header row (ProductID, EAN, NetPrice, NetRetailPrice, ...): read by column name;
+ * - with a header row (ProductID, EuropeanArticleNumber, NetPrice, NetRetailPrice, ...): read by column name;
  * - without a header (the old n8n layout of pricelist-2): read by position.
  * Which file is used is the setting catalog_file (see docs/LEVERANCIERS.md).
  */
@@ -69,7 +69,13 @@ class AlsoFeed extends Feed
         $sample = substr($sample, 0, strrpos($sample, "\n") ?: strlen($sample));
         $encoding = mb_check_encoding($sample, 'UTF-8') ? 'UTF-8' : 'Windows-1252';
 
-        $missing = array_diff(['productid', 'ean', 'netprice'], array_map(fn ($h) => strtolower(trim($h, " \t\n\r\"\xEF\xBB\xBF")), str_getcsv($firstLine, $delimiter)));
+        $headers = array_map(fn ($h) => strtolower(trim($h, " \t\n\r\"\xEF\xBB\xBF")), str_getcsv($firstLine, $delimiter));
+        $missing = array_filter([
+            'ProductID' => in_array('productid', $headers, true),
+            'EuropeanArticleNumber' => array_intersect(['europeanarticlenumber', 'ean'], $headers) !== [],
+            'NetPrice' => in_array('netprice', $headers, true),
+        ], fn ($present) => ! $present);
+        $missing = array_keys($missing);
 
         if ($missing !== []) {
             throw new RuntimeException('Kolommen ontbreken in de prijslijst van ALSO: '.implode(', ', $missing));
@@ -95,10 +101,9 @@ class AlsoFeed extends Feed
 
             $writer->add([
                 'sku' => Parse::text($get('productid')),
-                'ean' => Parse::ean($get('ean')),
+                'ean' => Parse::ean($get('europeanarticlenumber', 'ean')),
                 'mpn' => Parse::text($get('manufacturerpartnumber'), 64),
-                // ALSO spells this column "ManfacturerName"; accept both.
-                'brand' => Parse::text($get('manfacturername', 'manufacturername'), 100),
+                'brand' => Parse::text($get('manufacturername', 'manfacturername'), 100),
                 'description' => Parse::description($get('shortdescription'), 500),
                 'net_price' => Parse::decimal($get('netprice')),
                 'msrp' => Parse::decimal($get('netretailprice')),

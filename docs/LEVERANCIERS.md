@@ -36,9 +36,9 @@ Het scheidingsteken en de tekenset worden automatisch herkend.
 | Kolom | Veld |
 |---|---|
 | `ProductID` | leveranciersartikelnummer (verplicht) |
-| `EAN` | EAN (verplicht) |
+| `EuropeanArticleNumber` | EAN (verplicht; `EAN` mag ook) |
 | `ManufacturerPartNumber` | fabrikantnummer |
-| `ManfacturerName` | merk (ALSO schrijft het zo; `ManufacturerName` mag ook) |
+| `ManufacturerName` | merk |
 | `ShortDescription` | omschrijving |
 | `NetPrice` | netto inkoopprijs (verplicht) |
 | `NetRetailPrice` | adviesprijs, gebruikt voor de merkkorting |

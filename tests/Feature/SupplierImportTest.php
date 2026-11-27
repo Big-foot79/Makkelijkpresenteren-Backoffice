@@ -271,7 +271,7 @@ class SupplierImportTest extends TestCase
     {
         $supplier = $this->supplierWithFiles('also', [
             'pricelist-1.txt.zip' => ['pricelist.txt' => implode("\n", [
-                'ProductID;EAN;ManufacturerPartNumber;ManfacturerName;ShortDescription;NetPrice;NetRetailPrice;RecyclingFee;CategoryText1;CategoryText2;CategoryText3;EndOfLife;WarrantyMonths',
+                'ProductID;EuropeanArticleNumber;ManufacturerPartNumber;ManufacturerName;ShortDescription;NetPrice;NetRetailPrice;RecyclingFee;CategoryText1;CategoryText2;CategoryText3;EndOfLife;WarrantyMonths',
                 'A-100;8712345678906;VB-1;Merk A;Videobar 4K;1234,56;1599,00;1,50;AV;Video;Videobars;N;24',
                 'A-200;5901234123457;OLD-1;Merk B;Oud scherm;99,00;;;Displays;;;20250101;12',
             ])],
