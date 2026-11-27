@@ -267,6 +267,31 @@ class SupplierImportTest extends TestCase
         $this->assertSame('9.99', SupplierItem::where('sku', 'A-200')->value('net_price'));
     }
 
+    public function test_also_catalog_with_our_own_columns_is_read_by_name(): void
+    {
+        $supplier = $this->supplierWithFiles('also', [
+            'pricelist-1.txt.zip' => ['pricelist.txt' => implode("\n", [
+                'ProductID;EAN;ManufacturerPartNumber;ManfacturerName;ShortDescription;NetPrice;NetRetailPrice;RecyclingFee;CategoryText1;CategoryText2;CategoryText3;EndOfLife;WarrantyMonths',
+                'A-100;8712345678906;VB-1;Merk A;Videobar 4K;1234,56;1599,00;1,50;AV;Video;Videobars;N;24',
+                'A-200;5901234123457;OLD-1;Merk B;Oud scherm;99,00;;;Displays;;;20250101;12',
+            ])],
+        ], ['catalog_file' => 'pricelist-1.txt.zip']);
+
+        $run = $this->import($supplier, 'catalog');
+        $this->assertSame(JobRunStatus::Succeeded, $run->status, (string) $run->log);
+        $this->assertStringContainsString('kolommen op naam', (string) $run->log);
+
+        $item = SupplierItem::where('sku', 'A-100')->sole();
+        $this->assertSame('1234.56', $item->net_price);
+        $this->assertSame('1599.00', $item->msrp);
+        $this->assertSame('1.50', $item->surcharge);
+        $this->assertSame('Merk A', $item->brand);
+        $this->assertSame('VB-1', $item->mpn);
+        $this->assertSame('AV > Video > Videobars', $item->category);
+        $this->assertNull($item->status);
+        $this->assertSame('eol', SupplierItem::where('sku', 'A-200')->value('status'));
+    }
+
     // ---------------------------------------------------------------- Travion
 
     public function test_travion_reads_articles_prices_and_stock_from_one_file(): void

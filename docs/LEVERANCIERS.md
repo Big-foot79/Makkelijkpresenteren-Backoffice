@@ -26,7 +26,28 @@ Kolomnummers zijn 0-gebaseerd. "Oud ID" is het `Supplier_Id` in de oude Postgres
 | `AvailableNextQuantity` | verwacht aantal |
 | `AvailabilityDate` + `AvailabilityTime` | peilmoment voorraad (`YYYYMMDD` + `HHMMSS`, lokale tijd) |
 
-**Prijslijst / materiaal** — `/pricelist-2.txt.zip`, ZIP met één tekstbestand, `;`, geen kop, minimaal 16 kolommen.
+**Prijslijst / materiaal** — een ZIP met één tekstbestand. De kolommen van `pricelist-1` en `pricelist-2`
+stellen we zelf in bij ALSO. Welk bestand de backoffice leest, bepaalt de instelling `catalog_file`
+(standaard `pricelist-2.txt.zip`). De import herkent zelf welke opbouw het bestand heeft:
+
+*Met kopregel* (onze eigen indeling, bedoeld voor `pricelist-1`). De kolommen worden op naam gelezen.
+Het scheidingsteken en de tekenset worden automatisch herkend.
+
+| Kolom | Veld |
+|---|---|
+| `ProductID` | leveranciersartikelnummer (verplicht) |
+| `EAN` | EAN (verplicht) |
+| `ManufacturerPartNumber` | fabrikantnummer |
+| `ManfacturerName` | merk (ALSO schrijft het zo; `ManufacturerName` mag ook) |
+| `ShortDescription` | omschrijving |
+| `NetPrice` | netto inkoopprijs (verplicht) |
+| `NetRetailPrice` | adviesprijs, gebruikt voor de merkkorting |
+| `RecyclingFee` | toeslag (verwijderingsbijdrage) |
+| `CategoryText1-3` | categorie, samengevoegd als "1 > 2 > 3" |
+| `EndOfLife` | end of life bij J/Y/X/1, of bij een datum in het verleden |
+| `WarrantyMonths` | garantie (maanden) |
+
+*Zonder kopregel* (de oude indeling van `pricelist-2`, zoals n8n die las): `;`, minimaal 16 kolommen.
 
 | Kolom | Veld |
 |---|---|
@@ -38,7 +59,7 @@ Kolomnummers zijn 0-gebaseerd. "Oud ID" is het `Supplier_Id` in de oude Postgres
 | 9 | merk |
 | 13 | garantie (maanden) |
 
-Geen adviesprijs in de gebruikte kolommen.
+Deze oude indeling heeft geen adviesprijs.
 
 **Alles op de SFTP-server** (stand 26 november 2026)
 
