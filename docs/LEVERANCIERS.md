@@ -162,3 +162,23 @@ bewaard blijven voor de bestelkoppeling.
 5. **Tijdzone vast op +01:00** bij ALSO; in de zomer klopt dat niet. Nieuw: lezen als Europe/Amsterdam.
 6. **Travion:** `Available_Next_Date` werd gevuld met de bestandsdatum. Travion levert geen verwachte datum; leeg laten.
 7. **Copaco:** account-code staat als `1141116`, de map als `114116`. Controleren welke klopt.
+
+## Merkafspraken en prijslijsten (verwachte inkoop)
+
+De lijstprijs van een distributeur is zelden wat we echt betalen. Per EAN rekent de backoffice daarom
+een **verwachte inkoop** uit. Er zijn drie kandidaten en de laagste wint:
+
+1. **Bid**: een inkoop- of bidprijs uit een geldige, ingelezen prijslijst (Leveranciers → Prijslijsten).
+2. **Merkkorting**: de adviesprijs min de gebruikelijke korting van het merk (Leveranciers →
+   Merkafspraken). De adviesprijs komt uit een ingelezen prijslijst, of anders van TD Synnex.
+3. **Lijst**: de laagste inkoopprijs bij de distributeurs.
+
+De marge in Producten, op het productscherm en in de MCP-tool rekent met deze verwachte inkoop.
+Hoe de prijs tot stand kwam, staat erbij.
+
+**Prijslijst inlezen.** Een prijslijst kan een `.xlsx`, `.ods` of `.csv` zijn. Een `.xls` sla je eerst
+op als `.xlsx`. Na het uploaden zoekt de backoffice zelf de kopregel, ook als er een titelregel
+boven staat, en raadt de kolommen. Je controleert de kolomkeuze met het voorbeeld en klikt op
+**Inlezen**. Regels zonder EAN krijgen er een als een leverancier hetzelfde artikelnummer van
+de fabrikant met EAN voert. Een prijslijst telt alleen mee binnen de geldigheidsdatums.
+Opnieuw inlezen vervangt de regels.

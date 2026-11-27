@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\Pages;
 use App\Filament\Resources\Products\ProductResource;
 use App\Filament\Resources\SupplierItems\SupplierItemResource;
 use App\Models\Product;
+use App\Pricing\PurchasePrice;
 use App\Shop\ShopSync;
 use App\Suppliers\StockAvailability;
 use Filament\Actions\Action;
@@ -50,22 +51,25 @@ class ViewProduct extends ViewRecord
                     ->schema([
                         TextEntry::make('webshop_price')->label('Webshopprijs (excl. btw)')->money('EUR', locale: 'nl')->placeholder('—'),
                         TextEntry::make('sale_price')->label('Actieprijs')->money('EUR', locale: 'nl')->placeholder('geen'),
-                        TextEntry::make('lowest')
-                            ->label('Laagste inkoop')
-                            ->state(function (Product $record) {
-                                $item = $record->lowestPurchase();
-
-                                return $item ? '€ '.number_format((float) $item->net_price, 2, ',', '.').' bij '.$item->supplier->name : null;
-                            })
+                        TextEntry::make('expected')
+                            ->label('Verwachte inkoop')
+                            ->state(fn (Product $record) => ($p = ProductResource::purchase($record)) && $p['expected'] !== null
+                                ? '€ '.number_format($p['expected'], 2, ',', '.') : null)
+                            ->helperText(fn (Product $record) => ProductResource::purchase($record)['label'] ?? null)
                             ->placeholder('—'),
+                        TextEntry::make('purchase_options')
+                            ->label('Opties')
+                            ->state(fn (Product $record) => self::purchaseOptions($record))
+                            ->html()
+                            ->placeholder('Geen inkoopprijs bekend'),
                         TextEntry::make('margin')
                             ->label('Marge')
                             ->state(function (Product $record) {
-                                $cost = $record->lowestPurchase()?->net_price;
-                                $price = $record->sale_price ?? $record->webshop_price;
+                                $cost = ProductResource::purchase($record)['expected'] ?? null;
+                                $price = (float) ($record->sale_price ?? $record->webshop_price);
 
-                                return $cost && $price > 0
-                                    ? '€ '.number_format($price - $cost, 2, ',', '.').' ('.number_format(($price - $cost) / $price * 100, 1, ',', '.').'%)'
+                                return $cost !== null && $price > 0
+                                    ? '€ '.number_format($price - $cost, 2, ',', '.').' ('.number_format(PurchasePrice::marginPercent($price, $cost), 1, ',', '.').'%)'
                                     : null;
                             })
                             ->placeholder('—'),
@@ -102,6 +106,33 @@ class ViewProduct extends ViewRecord
                         TextEntry::make('woo_synced_at')->label('Laatst bijgewerkt')->since()->placeholder('nog niet'),
                     ]),
             ]);
+    }
+
+    private static function purchaseOptions(Product $record): ?HtmlString
+    {
+        $p = ProductResource::purchase($record);
+
+        if (! $p || $p['expected'] === null) {
+            return null;
+        }
+
+        $euro = fn (float $v) => '€ '.number_format($v, 2, ',', '.');
+        $lines = [];
+
+        if ($p['bid']) {
+            $lines['bid'] = 'Bid: '.$euro($p['bid']['price']).' ('.e($p['bid']['price_list']).')';
+        }
+
+        if ($p['discount']) {
+            $d = $p['discount'];
+            $lines['discount'] = 'Merkkorting: '.$euro($d['price']).' (adviesprijs '.$euro($d['msrp']).' van '.e($d['msrp_from']).' − '.$d['percent'].'%)';
+        }
+
+        if ($p['list']) {
+            $lines['list'] = 'Lijst: '.$euro($p['list']['price']).' bij '.e($p['list']['supplier']);
+        }
+
+        return new HtmlString(collect($lines)->map(fn ($line, $key) => $key === $p['source'] ? "<b>{$line}</b>" : $line)->implode('<br>'));
     }
 
     private static function supplierLines(Product $record): ?HtmlString

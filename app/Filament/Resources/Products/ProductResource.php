@@ -6,6 +6,7 @@ use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Filament\Resources\Products\Pages\ListProducts;
 use App\Filament\Resources\Products\Pages\ViewProduct;
 use App\Models\Product;
+use App\Pricing\PurchasePrice;
 use App\Suppliers\StockAvailability;
 use App\Support\Parse;
 use BackedEnum;
@@ -101,16 +102,25 @@ class ProductResource extends Resource
                 TextColumn::make('ean')->label('EAN')->fontFamily('mono')->placeholder('—')->toggleable(),
                 TextColumn::make('webshop_price')->label('Prijs')->money('EUR', locale: 'nl')->placeholder('—')->sortable(),
                 TextColumn::make('lowest_purchase')
-                    ->label('Laagste inkoop')
+                    ->label('Inkoop lijst')
                     ->money('EUR', locale: 'nl')
                     ->placeholder('—')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('expected_purchase')
+                    ->label('Verwachte inkoop')
+                    ->state(fn (Product $record) => self::purchase($record)['expected'] ?? null)
+                    ->money('EUR', locale: 'nl')
+                    ->placeholder('—')
+                    ->description(fn (Product $record) => ['bid' => 'bid', 'discount' => 'merkkorting', 'list' => 'lijst'][self::purchase($record)['source'] ?? ''] ?? null)
+                    ->tooltip(fn (Product $record) => self::purchase($record)['label'] ?? null),
                 TextColumn::make('margin')
                     ->label('Marge')
-                    ->state(fn (Product $record) => $record->webshop_price > 0 && $record->lowest_purchase
-                        ? round(($record->webshop_price - $record->lowest_purchase) / $record->webshop_price * 100, 1)
-                        : null)
-                    ->suffix('%')
+                    ->state(fn (Product $record) => PurchasePrice::marginPercent(
+                        $record->sale_price !== null ? (float) $record->sale_price : ($record->webshop_price !== null ? (float) $record->webshop_price : null),
+                        self::purchase($record)['expected'] ?? null,
+                    ))
+                    ->formatStateUsing(fn (?float $state) => $state === null ? null : number_format($state, 1, ',', '.').'%')
                     ->placeholder('—')
                     ->color(fn (?float $state) => $state === null ? 'gray' : ($state < 5 ? 'danger' : ($state < 12 ? 'warning' : 'success'))),
                 TextColumn::make('availability')
@@ -139,6 +149,12 @@ class ProductResource extends Resource
                 ViewAction::make(),
                 EditAction::make(),
             ]);
+    }
+
+    /** Expected purchase price for a product (cached per request by the scoped service). */
+    public static function purchase(Product $record): ?array
+    {
+        return app(PurchasePrice::class)->forEan($record->ean);
     }
 
     public static function getPages(): array

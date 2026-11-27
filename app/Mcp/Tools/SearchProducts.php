@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Models\Product;
+use App\Pricing\PurchasePrice;
 use App\Shop\ShopSync;
 use App\Support\Parse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -17,8 +18,9 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsReadOnly]
 #[Description(<<<'TXT'
     Search the webshop products the backoffice manages, by EAN, SKU, brand or name. Returns per product
-    the webshop price (excl. VAT), sale price, the lowest purchase price among the suppliers with the
-    same EAN (price list, no bids), the margin, the availability shown on the site and what WooCommerce
+    the webshop price (excl. VAT), sale price, the expected purchase price and how it was found (the
+    lowest of: a bid price from an uploaded price list, the advice price minus the brand's usual
+    discount, the lowest distributor price), the margin on that, the availability shown on the site and what WooCommerce
     shows right now. Use search-supplier-items for articles that are not (yet) in the shop.
     TXT)]
 class SearchProducts extends Tool
@@ -53,10 +55,12 @@ class SearchProducts extends Tool
             ->limit($validated['limit'] ?? 20)
             ->get();
 
+        $prices = app(PurchasePrice::class)->forEans($products->pluck('ean')->filter()->all());
+
         return Response::structured([
             'count' => $products->count(),
-            'products' => $products->map(function (Product $p) use ($sync) {
-                $cheapest = $p->lowestPurchase();
+            'products' => $products->map(function (Product $p) use ($sync, $prices) {
+                $purchase = $prices->get($p->ean);
                 $price = $p->sale_price ?? $p->webshop_price;
 
                 return [
@@ -68,12 +72,11 @@ class SearchProducts extends Tool
                     'status' => $p->status,
                     'webshop_price' => $p->webshop_price !== null ? (float) $p->webshop_price : null,
                     'sale_price' => $p->sale_price !== null ? (float) $p->sale_price : null,
-                    'lowest_purchase' => $cheapest ? [
-                        'net_price' => (float) $cheapest->net_price,
-                        'supplier' => $cheapest->supplier->name,
-                        'sku' => $cheapest->sku,
-                    ] : null,
-                    'margin_percent' => $cheapest && $price > 0 ? round(($price - $cheapest->net_price) / $price * 100, 1) : null,
+                    'expected_purchase' => $purchase['expected'] ?? null,
+                    'purchase_source' => $purchase['source'] ?? null,
+                    'purchase_explanation' => $purchase['label'] ?? null,
+                    'purchase_options' => $purchase ? array_filter(['bid' => $purchase['bid'], 'brand_discount' => $purchase['discount'], 'price_list' => $purchase['list']]) : null,
+                    'margin_percent' => PurchasePrice::marginPercent($price !== null ? (float) $price : null, $purchase['expected'] ?? null),
                     'availability' => $p->availability,
                     'availability_label' => $p->availabilityLabel(),
                     'expected_date' => $p->availability_date?->toDateString(),

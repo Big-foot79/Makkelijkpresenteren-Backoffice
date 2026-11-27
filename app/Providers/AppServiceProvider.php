@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Pricing\PurchasePrice;
 use App\Support\Actor;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -17,7 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Purchase prices are cached per request or job.
+        $this->app->scoped(PurchasePrice::class);
     }
 
     /**

@@ -353,7 +353,8 @@ class ShopTest extends TestCase
             ->assertOk()
             ->assertStructuredContentPath('count', 1)
             ->assertStructuredContentPath('products.0.webshop_price', 499)
-            ->assertStructuredContentPath('products.0.lowest_purchase.net_price', 400)
+            ->assertStructuredContentPath('products.0.expected_purchase', 400)
+            ->assertStructuredContentPath('products.0.purchase_source', 'list')
             ->assertStructuredContentPath('products.0.margin_percent', 19.8)
             ->assertStructuredContentPath('products.0.availability', 'ample');
     }
