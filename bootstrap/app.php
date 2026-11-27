@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Coolify terminates HTTPS in its Traefik proxy in front of the container.
         $middleware->trustProxies(at: '*');
+
+        // Webhooks are authenticated by their signature, not by a session.
+        $middleware->validateCsrfTokens(except: ['webhooks/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

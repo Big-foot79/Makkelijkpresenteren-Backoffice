@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 trait RecordsChanges
 {
     /** Attributes that are never stored in the change history. */
-    protected array $changeHistoryHidden = ['password', 'private_key', 'passphrase', 'remember_token', 'updated_at', 'created_at'];
+    protected array $changeHistoryHidden = ['password', 'private_key', 'passphrase', 'consumer_key', 'consumer_secret', 'webhook_secret', 'remember_token', 'updated_at', 'created_at'];
 
     public static function bootRecordsChanges(): void
     {
@@ -36,7 +36,8 @@ trait RecordsChanges
 
     protected function recordChange(string $event, array $old, array $new): void
     {
-        $hidden = array_flip($this->changeHistoryHidden);
+        // A model can hide more with: protected array $changeHistoryAlsoHidden = [...];
+        $hidden = array_flip(array_merge($this->changeHistoryHidden, $this->changeHistoryAlsoHidden ?? []));
         $old = array_diff_key($old, $hidden);
         $new = array_diff_key($new, $hidden);
 

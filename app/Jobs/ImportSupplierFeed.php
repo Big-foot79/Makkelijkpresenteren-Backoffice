@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\JobRun;
+use App\Models\ShopConnection;
 use App\Models\Supplier;
 use App\Suppliers\Feeds\Feed;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -41,5 +42,10 @@ class ImportSupplierFeed implements ShouldBeUnique, ShouldQueue
             subject: $supplier,
             input: ['supplier_id' => $supplier->id, 'kind' => $this->kind],
         );
+
+        // New stock or prices: bring the shop up to date (one sync even when several imports finish).
+        if (ShopConnection::current()?->canWrite()) {
+            SyncShopProducts::dispatch();
+        }
     }
 }

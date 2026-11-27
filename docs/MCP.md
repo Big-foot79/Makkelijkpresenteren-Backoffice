@@ -55,6 +55,7 @@ php artisan mcp:inspector mcp
 | `list-open-tasks` | Lezen | Open taken, optioneel gefilterd op soort |
 | `list-job-runs` | Lezen | Recente runs, optioneel alleen mislukte of van één type, met samenvatting |
 | `search-supplier-items` | Lezen | Leveranciersartikelen zoeken op EAN, artikelnummer, fabrikantnummer, merk of omschrijving; met inkoopprijs, adviesprijs, voorraad per leverancier en de beschikbaarheid zoals op de site |
+| `search-products` | Lezen | Webshopproducten zoeken op EAN, SKU, merk of naam; met webshopprijs, laagste inkoop, marge, beschikbaarheid en wat er nu in WooCommerce staat |
 
 ## Gepland
 

@@ -1,6 +1,8 @@
 <?php
 
 use App\Jobs\ImportSupplierFeed;
+use App\Jobs\RefreshShopProducts;
+use App\Models\ShopConnection;
 use App\Models\Supplier;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -49,3 +51,13 @@ Artisan::command('backoffice:prune-imports', function () {
 })->purpose('Verwijder gedownloade leveranciersbestanden ouder dan de bewaartermijn');
 
 Schedule::command('backoffice:prune-imports')->dailyAt('03:30')->timezone('Europe/Amsterdam');
+
+/*
+| Nightly check of the shop: read every product, refresh the link report, flag changes made in
+| WooCommerce itself, then push price and availability (only when the connection is active).
+*/
+Schedule::job(new RefreshShopProducts(thenSync: true))
+    ->dailyAt('02:15')
+    ->timezone('Europe/Amsterdam')
+    ->name('shop nightly check')
+    ->when(fn () => rescue(fn () => (bool) ShopConnection::current()?->hasCredentials(), false, false));

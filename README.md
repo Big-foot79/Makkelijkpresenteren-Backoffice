@@ -21,7 +21,7 @@ en een MCP-server zodat AI-agents taken kunnen uitvoeren.
 
 1. **Fundament** — gebruikers en rollen, runs, taken, wijzigingshistorie, MCP-server met leestools. *(klaar)*
 2. **Leveranciersdata** — importprofielen TD Synnex, Copaco, Travion, ALSO; voorraad met grens van 5 dagen. *(klaar)*
-3. Producten en shop — productmodel, prijsvelden, eerste sync met de nieuwe Woo-shop, webhooks.
+3. **Producten en shop** — koppelrapport op EAN, eenmalige koppeling, prijs en beschikbaarheid naar WooCommerce, webhooks, nachtelijke controle. *(klaar, eerst op staging)*
 4. Verrijking — Open Icecat, attributen, AI-tekst ter goedkeuring, afbeeldingen.
 5. Bids — fabrikanten, bid-aanvragen, bidmails herkennen, TD Synnex projectprices.
 6. Inkoop — bestelkoppelingen, track & trace, factuurcontrole.
@@ -57,4 +57,5 @@ Beheer: <http://localhost:8000/admin> · MCP: <http://localhost:8000/mcp>
 - [docs/MCP.md](docs/MCP.md) — AI-agents koppelen en beschikbare tools
 - [docs/DATAMODEL.md](docs/DATAMODEL.md) — tabellen en regels
 - [docs/LEVERANCIERS.md](docs/LEVERANCIERS.md) — bestanden en kolommen per leverancier
+- [docs/WEBSHOP.md](docs/WEBSHOP.md) — koppeling met WooCommerce: stromen, conflicten, instellen
 - [docs/VERRIJKING.md](docs/VERRIJKING.md) — uitgangspunt voor fase 4: Icecat-mapping, AI-prompt en lessen

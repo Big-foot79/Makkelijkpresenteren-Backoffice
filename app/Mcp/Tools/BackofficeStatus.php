@@ -5,9 +5,12 @@ namespace App\Mcp\Tools;
 use App\Enums\JobRunStatus;
 use App\Enums\TaskKind;
 use App\Models\JobRun;
+use App\Models\Product;
+use App\Models\ShopConnection;
 use App\Models\Supplier;
 use App\Models\Task;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\DB;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -16,7 +19,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
-#[Description('Overview of the backoffice right now: open tasks per kind and job runs of the last 24 hours (total, failed, still running) and per supplier how fresh its stock list and catalogue are. Use this first to see what needs attention.')]
+#[Description('Overview of the backoffice right now: open tasks per kind and job runs of the last 24 hours (total, failed, still running), the webshop link (linked products, availability, link report) and per supplier how fresh its stock list and catalogue are. Use this first to see what needs attention.')]
 class BackofficeStatus extends Tool
 {
     public function handle(Request $request): ResponseFactory
@@ -53,6 +56,13 @@ class BackofficeStatus extends Tool
                 'catalog_imported_at' => $s->catalog_imported_at?->toIso8601String(),
                 'listed_items' => $s->items()->where('is_listed', true)->count(),
             ])->all(),
+            'shop' => ($shop = ShopConnection::current()) ? [
+                'url' => $shop->url,
+                'writes_to_shop' => $shop->canWrite(),
+                'linked_products' => Product::whereNotNull('woo_id')->count(),
+                'availability' => Product::whereNotNull('woo_id')->groupBy('availability')->pluck(DB::raw('count(*)'), 'availability'),
+                'link_report' => $shop->last_report,
+            ] : null,
         ]);
     }
 

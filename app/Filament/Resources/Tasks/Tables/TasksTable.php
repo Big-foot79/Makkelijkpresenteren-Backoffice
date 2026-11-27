@@ -58,6 +58,8 @@ class TasksTable
             ])
             ->recordActions([
                 ViewAction::make(),
+                TaskActions::restoreBackoffice(),
+                TaskActions::acceptShop(),
                 TaskActions::complete(),
                 TaskActions::dismiss(),
             ]);

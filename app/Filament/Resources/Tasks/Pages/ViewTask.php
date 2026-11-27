@@ -13,6 +13,8 @@ class ViewTask extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            TaskActions::restoreBackoffice(),
+            TaskActions::acceptShop(),
             TaskActions::complete(),
             TaskActions::dismiss(),
         ];
