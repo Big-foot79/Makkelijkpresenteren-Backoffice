@@ -5,6 +5,7 @@ namespace App\Suppliers\Writers;
 use App\Models\JobRun;
 use App\Models\Supplier;
 use App\Models\SupplierItem;
+use App\Support\Brands;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -52,6 +53,12 @@ class ItemWriter
         }
 
         $values = array_intersect_key($item, array_flip(self::COLUMNS));
+
+        // One name per brand; the supplier's own spelling is kept in brand_raw.
+        if (array_key_exists('brand', $values)) {
+            $values['brand_raw'] = $values['brand'];
+            $values['brand'] = Brands::canonical($values['brand']);
+        }
 
         // Placeholder EANs built from the supplier's own article number (TD Synnex: 3265140 ->
         // 3265140000007) never match a real product; keep them out.

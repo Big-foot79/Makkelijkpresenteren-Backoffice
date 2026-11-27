@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\RecordsChanges;
 use App\Suppliers\StockAvailability;
+use App\Support\Brands;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -38,6 +39,15 @@ class Product extends Model
             'woo_synced_state' => 'array',
             'woo_synced_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $product) {
+            if ($product->isDirty('brand')) {
+                $product->brand = Brands::canonical($product->brand);
+            }
+        });
     }
 
     public function wooProduct(): HasOne

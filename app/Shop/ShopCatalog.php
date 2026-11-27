@@ -6,6 +6,7 @@ use App\Models\JobRun;
 use App\Models\Product;
 use App\Models\ShopConnection;
 use App\Models\WooProduct;
+use App\Support\Brands;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -81,7 +82,7 @@ class ShopCatalog
                         'woo_id' => $woo->woo_id,
                         'sku' => $product->sku ?? $woo->sku,
                         'name' => $product->name ?? ($woo->name ?: $woo->sku ?: $woo->ean),
-                        'brand' => $product->brand ?? $woo->brand,
+                        'brand' => $product->brand ?? Brands::canonical($woo->brand),
                         'status' => $woo->status ?? 'draft',
                         'webshop_price' => $product->webshop_price ?? $woo->regular_price,
                         'sale_price' => $product->sale_price ?? $woo->sale_price,
