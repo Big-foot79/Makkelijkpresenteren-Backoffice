@@ -55,10 +55,11 @@ class ProductResource extends Resource
             ->columns(2)
             ->components([
                 Section::make('Product')
+                    ->description('Naam, merk, SKU, teksten en afbeeldingen pas je voorlopig aan in WooCommerce. De backoffice gaat die beheren met de verrijking (fase 4).')
                     ->schema([
-                        TextInput::make('name')->label('Naam')->required()->maxLength(255),
-                        TextInput::make('brand')->label('Merk')->maxLength(100),
-                        TextInput::make('sku')->label('SKU')->maxLength(100),
+                        TextInput::make('name')->label('Naam')->disabled()->dehydrated(false),
+                        TextInput::make('brand')->label('Merk')->disabled()->dehydrated(false),
+                        TextInput::make('sku')->label('SKU')->disabled()->dehydrated(false),
                     ]),
                 Section::make('Prijs in de webshop')
                     ->description('Exclusief btw, zoals de webshop prijzen toont. Na opslaan gaat de prijs naar de webshop.')
