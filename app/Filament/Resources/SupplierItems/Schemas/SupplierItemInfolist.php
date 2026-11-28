@@ -44,7 +44,8 @@ class SupplierItemInfolist
                                     ->tooltip('Bekijk bij '.$record->supplier->name)
                                     ->url($record->supplierUrl(), shouldOpenInNewTab: true)
                                 : null),
-                        TextEntry::make('ean')->label('EAN')->fontFamily('mono')->copyable()->placeholder('—'),
+                        TextEntry::make('ean')->label('EAN')->fontFamily('mono')->copyable()->placeholder('—')
+                            ->helperText(fn (SupplierItem $record) => $record->ean_source === 'mpn' ? 'Opgezocht via het fabrikantnummer; de leverancier levert geen (echte) EAN.' : null),
                         TextEntry::make('mpn')->label('Fabrikantnummer')->fontFamily('mono')->placeholder('—'),
                         TextEntry::make('brand')->label('Merk')->placeholder('—'),
                         TextEntry::make('category')->label('Categorie')->placeholder('—'),

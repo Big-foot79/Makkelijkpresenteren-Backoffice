@@ -58,6 +58,7 @@ class SupplierItemsTable
                     ->label('EAN')
                     ->fontFamily('mono')
                     ->placeholder('—')
+                    ->description(fn (SupplierItem $record) => $record->ean_source === 'mpn' ? 'via fabrikantnummer' : null)
                     ->toggleable(),
                 TextColumn::make('net_price')
                     ->label('Inkoop')

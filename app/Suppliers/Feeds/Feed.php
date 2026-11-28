@@ -4,6 +4,7 @@ namespace App\Suppliers\Feeds;
 
 use App\Models\JobRun;
 use App\Models\Supplier;
+use App\Suppliers\EanResolver;
 use App\Suppliers\Files\RemoteFiles;
 use App\Suppliers\Writers\ItemWriter;
 use App\Suppliers\Writers\StockWriter;
@@ -41,7 +42,19 @@ abstract class Feed
             throw new InvalidArgumentException("{$this->supplier->name} kent geen import '{$kind}'.");
         }
 
-        return $this->importKind($kind, $run, new RemoteFiles($this->supplier));
+        $summary = $this->importKind($kind, $run, new RemoteFiles($this->supplier));
+
+        // Articles without EAN (or with a fake one that was dropped): look it up by part number.
+        if ($kind !== 'stock') {
+            $resolved = app(EanResolver::class)->forSupplier($this->supplier);
+
+            if ($resolved > 0) {
+                $run->info("{$resolved} EAN's aangevuld via het fabrikantnummer");
+                $summary .= ", {$resolved} EAN's via fabrikantnummer";
+            }
+        }
+
+        return $summary;
     }
 
     public function schedule(string $kind): ?string

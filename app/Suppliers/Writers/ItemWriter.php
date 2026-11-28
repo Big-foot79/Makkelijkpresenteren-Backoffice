@@ -54,6 +54,11 @@ class ItemWriter
 
         $values = array_intersect_key($item, array_flip(self::COLUMNS));
 
+        // A fresh EAN from the file replaces one we looked up earlier (see EanResolver).
+        if (array_key_exists('ean', $values)) {
+            $values['ean_source'] = null;
+        }
+
         // One name per brand; the supplier's own spelling is kept in brand_raw.
         if (array_key_exists('brand', $values)) {
             $values['brand_raw'] = $values['brand'];

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\Pages;
 use App\Filament\Resources\Products\ProductResource;
 use App\Filament\Resources\SupplierItems\SupplierItemResource;
 use App\Models\Product;
+use App\Models\SupplierItem;
 use App\Pricing\PurchasePrice;
 use App\Shop\ShopSync;
 use App\Suppliers\StockAvailability;
@@ -147,7 +148,14 @@ class ViewProduct extends ViewRecord
         $lines = collect($a['suppliers'] ?? [])->map(fn (array $s) => e($s['supplier']).' ('.e($s['sku']).'): '
             .($s['counts'] ? '<b>'.$s['quantity'].'</b>'.($s['next_date'] ? ', verwacht '.e($s['next_date']) : '') : '<span class="text-gray-500">'.($reasons[$s['reason']] ?? '—').'</span>'));
 
-        return $lines->isEmpty() ? new HtmlString('Geen leverancier voert deze EAN') : new HtmlString($lines->implode('<br>'));
+        // Articles with this EAN that a supplier no longer lists do not count; say so instead of hiding them.
+        $delisted = SupplierItem::query()->with('supplier:id,name')->where('ean', $record->ean)->where('is_listed', false)->get()
+            ->map(fn (SupplierItem $i) => e($i->supplier->name).' ('.e($i->sku).'): <span class="text-gray-500">niet meer in catalogus</span>');
+        $lines = $lines->concat($delisted);
+
+        return $lines->isEmpty()
+            ? new HtmlString('Geen leverancier voert deze EAN. Staat het artikel er wel, maar zonder of met een andere EAN? Dan koppelt het via het fabrikantnummer zodra dat gelijk is aan de SKU in de shop.')
+            : new HtmlString($lines->implode('<br>'));
     }
 
     protected function getHeaderActions(): array
