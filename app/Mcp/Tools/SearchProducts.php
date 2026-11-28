@@ -29,7 +29,7 @@ class SearchProducts extends Tool
     {
         $validated = $request->validate([
             'query' => ['required', 'string', 'min:2', 'max:200'],
-            'availability' => ['nullable', 'in:ample,limited,backorder,unknown'],
+            'availability' => ['nullable', 'in:ample,limited,available,backorder,unknown'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
@@ -93,7 +93,7 @@ class SearchProducts extends Tool
     {
         return [
             'query' => $schema->string()->description('EAN, SKU, brand or part of the product name.')->required(),
-            'availability' => $schema->string()->enum(['ample', 'limited', 'backorder', 'unknown'])->description('Only products with this availability.'),
+            'availability' => $schema->string()->enum(['ample', 'limited', 'available', 'backorder', 'unknown'])->description('Only products with this availability.'),
             'limit' => $schema->integer()->min(1)->max(50)->description('Maximum number of products, default 20.'),
         ];
     }

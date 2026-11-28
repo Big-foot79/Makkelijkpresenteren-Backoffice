@@ -16,6 +16,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -68,6 +69,9 @@ class PriceListResource extends Resource
                             ->placeholder('Rechtstreeks / niet van toepassing'),
                         DatePicker::make('valid_from')->label('Geldig vanaf')->native(false)->displayFormat('d-m-Y'),
                         DatePicker::make('valid_until')->label('Geldig tot en met')->native(false)->displayFormat('d-m-Y')->afterOrEqual('valid_from'),
+                        Toggle::make('assume_available')
+                            ->label('Ga uit van leverbaar')
+                            ->helperText('Voor een distributeur zonder voorraadgegevens (zoals Midwich): wat op deze lijst staat met een prijs, toont de webshop als "Leverbaar" in plaats van nalevering of onbekend.'),
                     ]),
                 Section::make('Bestand')
                     ->schema([

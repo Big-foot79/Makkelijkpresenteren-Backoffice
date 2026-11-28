@@ -41,6 +41,7 @@ class PriceList extends Model
         return [
             'valid_from' => 'date',
             'valid_until' => 'date',
+            'assume_available' => 'boolean',
             'columns' => 'array',
             'imported_at' => 'datetime',
         ];

@@ -12,13 +12,16 @@ use Illuminate\Support\Facades\DB;
  * - the highest quantity at a single supplier decides the status;
  * - a supplier's stock list older than max_age_days does not count;
  * - more than ample_above = "ruim", 1..ample_above = "beperkt", 0 = "op nalevering"
- *   (with the earliest expected date, where a supplier delivers one).
+ *   (with the earliest expected date, where a supplier delivers one);
+ * - no stock anywhere, but carried by a distributor that gives no stock data (a current price list
+ *   with "assume available", e.g. Midwich) = "leverbaar" (decision 28 Nov 2026).
  */
 class StockAvailability
 {
     public const STATUS_LABELS = [
         'ample' => 'Ruim op voorraad',
         'limited' => 'Beperkt op voorraad',
+        'available' => 'Leverbaar',
         'backorder' => 'Op nalevering',
         'unknown' => 'Onbekend',
     ];
@@ -57,7 +60,18 @@ class StockAvailability
             ])
             ->get();
 
-        return collect($eans)->mapWithKeys(function (string $ean) use ($lines, $maxAge) {
+        // Distributors without stock data whose current price list says: assume available.
+        $assumed = DB::table('price_list_items as pi')
+            ->join('price_lists as pl', 'pl.id', '=', 'pi.price_list_id')
+            ->whereIn('pi.ean', $eans)
+            ->where('pl.assume_available', true)
+            ->where('pl.status', 'imported')
+            ->whereNotNull('pi.purchase_price')
+            ->where(fn ($q) => $q->whereNull('pl.valid_from')->orWhere('pl.valid_from', '<=', now()->toDateString()))
+            ->where(fn ($q) => $q->whereNull('pl.valid_until')->orWhere('pl.valid_until', '>=', now()->toDateString()))
+            ->pluck('pl.name', 'pi.ean');
+
+        return collect($eans)->mapWithKeys(function (string $ean) use ($lines, $maxAge, $assumed) {
             $suppliers = $lines->where('ean', $ean)->map(function ($line) use ($maxAge) {
                 $asOf = $line->stock_as_of ? CarbonImmutable::parse($line->stock_as_of) : null;
                 $fresh = $asOf !== null && $asOf->gte(now()->subDays($maxAge));
@@ -86,9 +100,10 @@ class StockAvailability
             $ample = (int) config('backoffice.stock.ample_above');
 
             $status = match (true) {
-                $counting->isEmpty() => 'unknown',
                 $bestQty > $ample => 'ample',
                 $bestQty > 0 => 'limited',
+                $assumed->has($ean) => 'available',
+                $counting->isEmpty() => 'unknown',
                 default => 'backorder',
             };
 
@@ -96,7 +111,7 @@ class StockAvailability
                 'status' => $status,
                 'label' => self::STATUS_LABELS[$status],
                 'best_quantity' => $bestQty,
-                'best_supplier' => $bestQty > 0 ? $best['supplier'] : null,
+                'best_supplier' => $bestQty > 0 ? $best['supplier'] : ($status === 'available' ? $assumed->get($ean) : null),
                 // A supplier date that has already passed says nothing; leave it out.
                 'next_date' => $status === 'backorder'
                     ? $counting->pluck('next_date')->filter(fn ($d) => $d >= now()->toDateString())->sort()->first()

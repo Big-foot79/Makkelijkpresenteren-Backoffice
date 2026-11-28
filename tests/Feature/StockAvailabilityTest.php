@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\JobRunStatus;
 use App\Models\JobRun;
+use App\Models\PriceList;
 use App\Models\Supplier;
 use App\Models\SupplierItem;
 use App\Models\SupplierStock;
@@ -85,5 +86,29 @@ class StockAvailabilityTest extends TestCase
         $this->stockAt('travion', 10, ageInDays: 9);
 
         $this->assertSame('unknown', $this->availability()['status']);
+    }
+
+    public function test_a_distributor_without_stock_data_counts_as_available_when_its_list_says_so(): void
+    {
+        $this->stockAt('tdsynnex', 0, nextDate: now()->addWeek()->toDateString());
+        $list = PriceList::create(['name' => 'Midwich', 'file_path' => 'x.csv', 'status' => 'imported', 'assume_available' => true]);
+        $list->items()->create(['ean' => self::EAN, 'purchase_price' => 100]);
+
+        $result = $this->availability();
+        $this->assertSame('available', $result['status']);
+        $this->assertSame('Leverbaar', $result['label']);
+        $this->assertSame('Midwich', $result['best_supplier']);
+
+        // Real stock elsewhere still wins, and without the setting nothing changes.
+        $list->update(['assume_available' => false]);
+        $this->assertSame('backorder', $this->availability()['status']);
+    }
+
+    public function test_assumed_available_also_works_without_any_supplier_article(): void
+    {
+        $list = PriceList::create(['name' => 'Midwich', 'file_path' => 'x.csv', 'status' => 'imported', 'assume_available' => true]);
+        $list->items()->create(['ean' => self::EAN, 'purchase_price' => 100]);
+
+        $this->assertSame('available', $this->availability()['status']);
     }
 }

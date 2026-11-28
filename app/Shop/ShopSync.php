@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
  * A product with an open sync conflict is left alone until someone decides.
  *
  * Availability in the shop:
- *   ample / limited -> stock_status "instock", backorder -> "onbackorder", unknown -> untouched.
+ *   ample / limited / available -> stock_status "instock", backorder -> "onbackorder", unknown -> untouched.
  *   The label ("Ruim op voorraad", ...) and expected date go into meta fields the theme can show.
  */
 class ShopSync
@@ -26,6 +26,7 @@ class ShopSync
     public const STOCK_STATUS = [
         'ample' => 'instock',
         'limited' => 'instock',
+        'available' => 'instock',
         'backorder' => 'onbackorder',
     ];
 

@@ -153,6 +153,10 @@ class ViewProduct extends ViewRecord
             ->map(fn (SupplierItem $i) => e($i->supplier->name).' ('.e($i->sku).'): <span class="text-gray-500">niet meer in catalogus</span>');
         $lines = $lines->concat($delisted);
 
+        if (($a['status'] ?? null) === 'available') {
+            $lines->push(e($a['best_supplier']).': <b>leverbaar</b> <span class="text-gray-500">(geen voorraadgegevens; prijslijst gaat uit van leverbaar)</span>');
+        }
+
         return $lines->isEmpty()
             ? new HtmlString('Geen leverancier voert deze EAN. Staat het artikel er wel, maar zonder of met een andere EAN? Dan koppelt het via het fabrikantnummer zodra dat gelijk is aan de SKU in de shop.')
             : new HtmlString($lines->implode('<br>'));

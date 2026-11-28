@@ -19,6 +19,7 @@ webshop** uit staat. Tot die tijd is elke sync een proefrun die alleen laat zien
 |---|---|---|
 | ruim (meer dan 5 bij één leverancier) | `instock` | Ruim op voorraad |
 | beperkt (1–5) | `instock` | Beperkt op voorraad |
+| leverbaar (geen voorraad bekend, wel op een prijslijst met "Ga uit van leverbaar", zoals Midwich) | `instock` | Leverbaar |
 | nalevering (0, met verse lijst) | `onbackorder` | Op nalevering (+ `_mp_stock_next_date`) |
 | onbekend (geen verse lijst of geen leverancier) | ongewijzigd | leeg |
 

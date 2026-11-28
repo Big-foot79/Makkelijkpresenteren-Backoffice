@@ -44,6 +44,7 @@ class ProductResource extends Resource
     public const AVAILABILITY_COLORS = [
         'ample' => 'success',
         'limited' => 'warning',
+        'available' => 'success',
         'backorder' => 'danger',
         'unknown' => 'gray',
     ];
