@@ -144,7 +144,7 @@ class PriceListImporter
         });
 
         $run->info(count($rows)." regels ingelezen, {$skipped} overgeslagen (geen nummer of prijs)");
-        $run->info("{$byMpn} EAN's gevonden via het artikelnummer bij de leveranciers");
+        $run->info("{$byMpn} EAN's gevonden via artikelnummer of model (bij de leveranciers of in de webshop)");
 
         if ($withoutEan) {
             $run->warning("{$withoutEan} regels zonder EAN: die tellen pas mee als een leverancier het artikelnummer met EAN voert");

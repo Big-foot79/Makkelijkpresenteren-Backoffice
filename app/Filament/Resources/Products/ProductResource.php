@@ -113,7 +113,7 @@ class ProductResource extends Resource
                     ->state(fn (Product $record) => self::purchase($record)['expected'] ?? null)
                     ->money('EUR', locale: 'nl')
                     ->placeholder('—')
-                    ->description(fn (Product $record) => ['bid' => 'bid', 'discount' => 'merkkorting', 'list' => 'lijst'][self::purchase($record)['source'] ?? ''] ?? null)
+                    ->description(fn (Product $record) => ['bid' => 'prijslijst', 'discount' => 'merkkorting', 'list' => 'distributeur'][self::purchase($record)['source'] ?? ''] ?? null)
                     ->tooltip(fn (Product $record) => self::purchase($record)['label'] ?? null),
                 TextColumn::make('margin')
                     ->label('Marge')

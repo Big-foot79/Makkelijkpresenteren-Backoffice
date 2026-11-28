@@ -111,7 +111,7 @@ class PurchasePrice
                 'expected' => $source ? $candidates[$source] : null,
                 'source' => $source,
                 'label' => match ($source) {
-                    'bid' => 'Bidprijs uit '.$bid['price_list'],
+                    'bid' => 'Prijslijst '.$bid['price_list'],
                     'discount' => sprintf('Adviesprijs € %s − %s%% (%s)%s', number_format($discount['msrp'], 2, ',', '.'), rtrim(rtrim(number_format($discount['percent'], 2, ',', ''), '0'), ','), $discount['brand'], $discount['supplier'] ? ' via '.$discount['supplier'] : ''),
                     'list' => 'Inkoop '.$list['supplier'],
                     default => null,

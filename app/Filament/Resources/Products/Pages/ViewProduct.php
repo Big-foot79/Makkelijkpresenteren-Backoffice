@@ -121,7 +121,7 @@ class ViewProduct extends ViewRecord
         $lines = [];
 
         if ($p['bid']) {
-            $lines['bid'] = 'Bid: '.$euro($p['bid']['price']).' ('.e($p['bid']['price_list']).')';
+            $lines['bid'] = 'Prijslijst: '.$euro($p['bid']['price']).' ('.e($p['bid']['price_list']).')';
         }
 
         if ($p['discount']) {

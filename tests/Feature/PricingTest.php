@@ -76,7 +76,7 @@ class PricingTest extends TestCase
         $list->items()->create(['ean' => self::EAN, 'purchase_price' => 690, 'msrp' => 1050]);
 
         $this->assertSame(690.0, $this->price()['expected']);
-        $this->assertSame('Bidprijs uit iiyama bids', $this->price()['label']);
+        $this->assertSame('Prijslijst iiyama bids', $this->price()['label']);
 
         $list->update(['valid_until' => now()->subDay()]);
         $this->assertSame('list', $this->price()['source']);
