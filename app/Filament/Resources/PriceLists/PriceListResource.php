@@ -99,6 +99,10 @@ class PriceListResource extends Resource
                             ->label('Tabblad')
                             ->options(fn (?PriceList $record) => $record ? rescue(fn () => Spreadsheet::sheets(PriceListImporter::path($record)), [], false) : [])
                             ->selectablePlaceholder(false)
+                            ->default(0)
+                            ->dehydrateStateUsing(fn ($state) => (int) ($state ?? 0))
+                            // A CSV or a workbook with one sheet: nothing to choose.
+                            ->visible(fn (?PriceList $record) => $record && count(rescue(fn () => Spreadsheet::sheets(PriceListImporter::path($record)), [], false)) > 1)
                             ->live()
                             ->afterStateUpdated(fn (?PriceList $record, Get $get, Set $set) => self::reguess($record, $get, $set)),
                         TextInput::make('header_row')

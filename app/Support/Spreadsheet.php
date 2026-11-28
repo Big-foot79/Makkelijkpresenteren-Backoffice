@@ -26,7 +26,8 @@ class Spreadsheet
         $names = [];
 
         foreach ($reader->getSheetIterator() as $sheet) {
-            $names[] = $sheet->getName();
+            // A CSV has one unnamed sheet.
+            $names[] = trim((string) $sheet->getName()) !== '' ? $sheet->getName() : 'Blad '.(count($names) + 1);
         }
 
         $reader->close();

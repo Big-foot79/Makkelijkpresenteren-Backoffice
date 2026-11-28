@@ -217,4 +217,29 @@ class PricingTest extends TestCase
         $this->assertSame('6938818316287', $item->ean);
         $this->assertSame('3424.52', $item->purchase_price);
     }
+
+    public function test_a_csv_can_be_uploaded_saved_and_read_in_from_the_screen(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(CreatePriceList::class)
+            ->fillForm(['name' => 'Midwich', 'file_path' => UploadedFile::fake()->createWithContent('price_list.csv', "SKU,MPN,Naam,Artikelnummer,Prijs\nBRIG-HD226,HD226,\"BrightSign HD226\",1HD226,401.750\n")])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $list = PriceList::sole();
+
+        Livewire::test(EditPriceList::class, ['record' => $list->getRouteKey()])
+            ->assertFormFieldIsHidden('sheet')
+            ->fillForm(['assume_available' => true])
+            ->callAction('import')
+            ->assertHasNoErrors();
+
+        $list->refresh();
+        $this->assertSame('imported', $list->status);
+        $this->assertTrue($list->assume_available);
+        $this->assertSame(0, $list->sheet);
+        $this->assertSame(1, $list->rows_imported);
+    }
 }
