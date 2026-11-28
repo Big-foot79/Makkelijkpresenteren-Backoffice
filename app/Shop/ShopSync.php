@@ -56,18 +56,21 @@ class ShopSync
             ->where('subject_type', (new Product)->getMorphClass())->pluck('subject_id')->flip();
 
         $stats = ['checked' => 0, 'unchanged' => 0, 'changed' => 0, 'sent' => 0, 'failed' => 0, 'skipped_conflict' => 0];
+        $byAvailability = array_fill_keys(array_keys(StockAvailability::STATUS_LABELS), 0);
+        $toBackorder = 0;
         $examples = [];
 
         Product::query()
             ->whereNotNull('woo_id')
             ->when($productIds !== null, fn ($q) => $q->whereIn('id', $productIds))
             ->with('wooProduct')
-            ->chunkById(500, function (Collection $products) use ($run, $client, $dryRun, $blocked, &$stats, &$examples) {
+            ->chunkById(500, function (Collection $products) use ($run, $client, $dryRun, $blocked, &$stats, &$examples, &$byAvailability, &$toBackorder) {
                 $this->refreshAvailability($products);
                 $updates = [];
 
                 foreach ($products as $product) {
                     $stats['checked']++;
+                    $byAvailability[$product->availability ?? 'unknown']++;
 
                     if (isset($blocked[$product->id])) {
                         $stats['skipped_conflict']++;
@@ -91,9 +94,13 @@ class ShopSync
 
                     $stats['changed']++;
 
+                    if (($diff['stock_status'] ?? null) === 'onbackorder' && ($current['stock_status'] ?? null) === 'instock') {
+                        $toBackorder++;
+                    }
+
                     if (count($examples) < 15) {
                         $examples[] = ($product->sku ?? $product->ean).': '.collect($diff)
-                            ->map(fn ($new, $key) => (self::FIELD_LABELS[$key] ?? $key).' '.self::show($current[$key] ?? null).' → '.self::show($new))
+                            ->map(fn ($new, $key) => (self::FIELD_LABELS[$key] ?? $key).' '.self::show($current[$key] ?? null, $key).' → '.self::show($new, $key))
                             ->implode(', ');
                     }
 
@@ -124,6 +131,15 @@ class ShopSync
                     $stats['sent']++;
                 }
             });
+
+        $run->info('Beschikbaarheid: '.collect($byAvailability)
+            ->map(fn ($n, $status) => StockAvailability::STATUS_LABELS[$status].' '.$n)->implode(', '));
+
+        if ($toBackorder) {
+            $run->info("{$toBackorder} producten gaan van 'op voorraad' naar 'nalevering' (geen voorraad bij een leverancier)");
+        }
+
+        $run->info('Voorbeelden:');
 
         foreach ($examples as $example) {
             $run->info($example);
@@ -279,8 +295,18 @@ class ShopSync
         return $payload;
     }
 
-    private static function show(mixed $value): string
+    private const STOCK_STATUS_LABELS = ['instock' => 'op voorraad', 'onbackorder' => 'nalevering', 'outofstock' => 'uitverkocht'];
+
+    private static function show(mixed $value, ?string $key = null): string
     {
-        return $value === null || $value === '' ? 'leeg' : (string) $value;
+        if ($value === null || $value === '') {
+            return 'leeg';
+        }
+
+        return match ($key) {
+            '_mp_stock_status' => mb_strtolower(StockAvailability::STATUS_LABELS[$value] ?? (string) $value),
+            'stock_status' => self::STOCK_STATUS_LABELS[$value] ?? (string) $value,
+            default => (string) $value,
+        };
     }
 }

@@ -97,7 +97,10 @@ class StockAvailability
                 'label' => self::STATUS_LABELS[$status],
                 'best_quantity' => $bestQty,
                 'best_supplier' => $bestQty > 0 ? $best['supplier'] : null,
-                'next_date' => $status === 'backorder' ? $counting->pluck('next_date')->filter()->sort()->first() : null,
+                // A supplier date that has already passed says nothing; leave it out.
+                'next_date' => $status === 'backorder'
+                    ? $counting->pluck('next_date')->filter(fn ($d) => $d >= now()->toDateString())->sort()->first()
+                    : null,
                 'suppliers' => $suppliers->all(),
             ]];
         });
