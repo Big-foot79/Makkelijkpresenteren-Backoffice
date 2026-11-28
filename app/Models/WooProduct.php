@@ -13,6 +13,7 @@ class WooProduct extends Model
     public const MATCH_STATUSES = [
         'ok' => 'Te koppelen',
         'linked' => 'Gekoppeld',
+        'ean_suggested' => 'EAN gevonden',
         'no_ean' => 'Geen EAN',
         'duplicate_ean' => 'EAN dubbel in shop',
         'variable' => 'Variabel product',

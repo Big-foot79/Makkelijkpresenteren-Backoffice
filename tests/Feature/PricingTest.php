@@ -191,4 +191,30 @@ class PricingTest extends TestCase
         $this->assertFalse($staff->can('create', BrandTerm::class));
         $this->assertTrue($staff->can('create', PriceList::class));
     }
+
+    public function test_a_midwich_style_list_finds_eans_via_the_model_in_the_name_and_the_shop_sku(): void
+    {
+        Storage::fake('local');
+        Product::create(['ean' => '6938818316287', 'sku' => 'MVC860-C5-000', 'name' => 'Yealink MVC860', 'brand' => 'Yealink']);
+        Storage::disk('local')->put('price-lists/midwich.csv', implode("\n", [
+            'SKU,MPN,Naam,Artikelnummer,Prijs',
+            'YEAL-1106984,1106984,"Yealink MVC860-C5-000",1YEA1106984,3424.520',
+            'BRIG-HD226,HD226,"BrightSign HD226",1HD226,401.750',
+            'YEAL-1106987,1106987,"Yealink MVC640-C4-000",1YEA1106987,POA',
+        ]));
+        $list = PriceList::create(['name' => 'Midwich', 'file_path' => 'price-lists/midwich.csv']);
+        $list->update(['columns' => PriceListImporter::guess(PriceListImporter::headers($list))]);
+
+        $this->assertSame(1, $list->fresh()->columns['mpn']);
+        $this->assertSame(2, $list->fresh()->columns['description']);
+        $this->assertSame(4, $list->fresh()->columns['purchase_price']);
+
+        (new ImportPriceList($list->id))->handle(app(PriceListImporter::class));
+
+        $list->refresh();
+        $this->assertSame(2, $list->rows_imported);               // POA has no price: skipped
+        $item = $list->items()->where('mpn', '1106984')->sole();
+        $this->assertSame('6938818316287', $item->ean);
+        $this->assertSame('3424.52', $item->purchase_price);
+    }
 }

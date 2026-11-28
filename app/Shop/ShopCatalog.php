@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ShopConnection;
 use App\Models\WooProduct;
 use App\Support\Brands;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -16,7 +17,7 @@ use RuntimeException;
  */
 class ShopCatalog
 {
-    public function __construct(private readonly WooClient $client) {}
+    public function __construct(private readonly ?WooClient $client = null) {}
 
     /** Fetch every product, classify, store the report and flag conflicts. */
     public function refresh(JobRun $run): string
@@ -46,7 +47,7 @@ class ShopCatalog
         }
 
         $this->forgetDeleted($startedAt, $run);
-        $report = $this->classify();
+        $report = self::classify();
 
         $conflicts = app(ShopSync::class)->detectConflicts(
             WooProduct::query()->whereNotNull('product_id')->with('product')->lazyById(500)
@@ -68,11 +69,14 @@ class ShopCatalog
     }
 
     /** Link every product with status "ok" to a backoffice product (created when needed). */
-    public function link(JobRun $run): string
+    /** @param list<int>|null $wooIds only these shop products (after accepting EAN suggestions) */
+    public function link(JobRun $run, ?array $wooIds = null): string
     {
         $linked = 0;
 
-        WooProduct::query()->where('match_status', 'ok')->whereNull('product_id')->lazyById(500)
+        WooProduct::query()->where('match_status', 'ok')->whereNull('product_id')
+            ->when($wooIds !== null, fn ($q) => $q->whereIn('woo_id', $wooIds))
+            ->lazyById(500)
             ->each(function (WooProduct $woo) use (&$linked) {
                 DB::transaction(function () use ($woo, &$linked) {
                     $product = Product::query()->where('ean', $woo->ean)->whereNull('woo_id')->first()
@@ -94,10 +98,30 @@ class ShopCatalog
             });
 
         $run->info("{$linked} producten gekoppeld");
-        $report = $this->classify();
-        $this->client->connection()->update(['last_report' => array_merge($this->client->connection()->last_report ?? [], $report)]);
+        $report = self::classify();
+        $connection = ShopConnection::current();
+        $connection?->update(['last_report' => array_merge($connection->last_report ?? [], $report)]);
 
         return "{$linked} producten gekoppeld; prijzen uit de webshop overgenomen als startpunt";
+    }
+
+    /**
+     * Accept the EAN found via the SKU for these shop products and link them. The EAN goes into
+     * the shop's GTIN field with the next sync (when writing is on).
+     *
+     * @param  list<int>  $wooIds
+     */
+    public static function acceptSuggestions(array $wooIds, JobRun $run): string
+    {
+        $accepted = WooProduct::query()->whereIn('woo_id', $wooIds)->where('match_status', 'ean_suggested')
+            ->whereNotNull('suggested_ean')->whereNull('product_id')->get();
+
+        foreach ($accepted as $woo) {
+            $woo->update(['ean' => $woo->suggested_ean, 'ean_source' => 'suggested', 'match_status' => 'ok']);
+            $run->info("{$woo->sku}: EAN {$woo->suggested_ean} ({$woo->suggested_from})");
+        }
+
+        return (new self)->link($run, $accepted->pluck('woo_id')->all());
     }
 
     /** @param list<array> $rows */
@@ -130,7 +154,7 @@ class ShopCatalog
     }
 
     /** @return array{total: int, by_status: array<string, int>, ok_with_supplier: int, manage_stock: int} */
-    public function classify(): array
+    public static function classify(): array
     {
         // How many supplier articles share each EAN.
         $supplierCounts = DB::table('supplier_items')
@@ -146,11 +170,16 @@ class ShopCatalog
         // EANs that already belong to a backoffice product linked to another Woo product.
         $taken = Product::query()->whereNotNull('woo_id')->whereNotNull('ean')->pluck('woo_id', 'ean');
 
-        WooProduct::query()->lazyById(500)->each(function (WooProduct $woo) use ($supplierCounts, $duplicates, $taken) {
+        $suggestions = self::suggestEans($taken->keys()->merge(WooProduct::query()->whereNotNull('ean')->pluck('ean'))->flip());
+
+        WooProduct::query()->lazyById(500)->each(function (WooProduct $woo) use ($supplierCounts, $duplicates, $taken, $suggestions) {
+            $suggestion = $woo->ean === null && $woo->product_id === null ? ($suggestions[$woo->woo_id] ?? null) : null;
+
             $status = match (true) {
                 $woo->product_id !== null => 'linked',
                 $woo->type === 'variable' => 'variable',
                 $woo->type !== 'simple' => 'other_type',
+                $woo->ean === null && $suggestion !== null => 'ean_suggested',
                 $woo->ean === null => 'no_ean',
                 isset($duplicates[$woo->ean]) => 'duplicate_ean',
                 isset($taken[$woo->ean]) && (int) $taken[$woo->ean] !== $woo->woo_id => 'duplicate_ean',
@@ -159,8 +188,10 @@ class ShopCatalog
 
             $matches = $woo->ean ? (int) ($supplierCounts[$woo->ean] ?? 0) : 0;
 
-            if ($woo->match_status !== $status || $woo->supplier_matches !== $matches) {
-                $woo->forceFill(['match_status' => $status, 'supplier_matches' => $matches])->saveQuietly();
+            $suggested = ['suggested_ean' => $suggestion['ean'] ?? null, 'suggested_from' => $suggestion['from'] ?? null];
+
+            if ($woo->match_status !== $status || $woo->supplier_matches !== $matches || $woo->suggested_ean !== $suggested['suggested_ean']) {
+                $woo->forceFill(['match_status' => $status, 'supplier_matches' => $matches] + $suggested)->saveQuietly();
             }
         });
 
@@ -170,6 +201,48 @@ class ShopCatalog
             'ok_with_supplier' => WooProduct::query()->where('match_status', 'ok')->where('supplier_matches', '>', 0)->count(),
             'manage_stock' => WooProduct::query()->where('manage_stock', true)->count(),
         ];
+    }
+
+    /**
+     * For shop products without EAN: a supplier article whose manufacturer part number equals the
+     * shop SKU, with a brand that does not contradict. Only when exactly one EAN fits and that EAN
+     * is not used elsewhere in the shop.
+     *
+     * @param  Collection<string, mixed>  $usedEans  flipped: ean => any
+     * @return array<int, array{ean: string, from: string}> woo_id => suggestion
+     */
+    private static function suggestEans($usedEans): array
+    {
+        $candidates = WooProduct::query()->whereNull('ean')->whereNull('product_id')->where('type', 'simple')
+            ->whereNotNull('sku')->get(['woo_id', 'sku', 'brand']);
+
+        if ($candidates->isEmpty()) {
+            return [];
+        }
+
+        $items = DB::table('supplier_items as i')
+            ->join('suppliers as s', 's.id', '=', 'i.supplier_id')
+            ->where('i.is_listed', true)
+            ->whereNotNull('i.ean')
+            ->whereIn(DB::raw('lower(i.mpn)'), $candidates->map(fn ($w) => mb_strtolower(trim($w->sku)))->unique()->values()->all())
+            ->get(['i.mpn', 'i.ean', 'i.brand', 'i.sku', 's.name as supplier'])
+            ->groupBy(fn ($i) => mb_strtolower(trim($i->mpn)));
+
+        $suggestions = [];
+
+        foreach ($candidates as $woo) {
+            $brand = $woo->brand ? mb_strtolower((string) Brands::canonical($woo->brand)) : null;
+            $fits = collect($items->get(mb_strtolower(trim($woo->sku)), []))
+                ->filter(fn ($i) => $brand === null || $i->brand === null || mb_strtolower($i->brand) === $brand);
+            $eans = $fits->pluck('ean')->unique();
+
+            if ($eans->count() === 1 && ! isset($usedEans[$eans->first()])) {
+                $first = $fits->first();
+                $suggestions[$woo->woo_id] = ['ean' => $eans->first(), 'from' => "{$first->supplier} {$first->sku}"];
+            }
+        }
+
+        return $suggestions;
     }
 
     public static function forCurrentShop(): self

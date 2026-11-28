@@ -6,6 +6,7 @@ use App\Enums\TaskKind;
 use App\Enums\TaskStatus;
 use App\Models\JobRun;
 use App\Models\Product;
+use App\Models\ShopConnection;
 use App\Models\Task;
 use App\Models\WooProduct;
 use App\Suppliers\StockAvailability;
@@ -29,6 +30,7 @@ class ShopSync
     ];
 
     public const FIELD_LABELS = [
+        'global_unique_id' => 'EAN (GTIN-veld)',
         'regular_price' => 'Prijs',
         'sale_price' => 'Actieprijs',
         'stock_status' => 'Voorraadstatus',
@@ -171,6 +173,11 @@ class ShopSync
             $state['stock_status'] = self::STOCK_STATUS[$availability];
         }
 
+        // The EAN goes into WooCommerce's own GTIN field (9.2+) when the shop does not have it there yet.
+        if ($product->ean && $product->wooProduct?->ean_source !== 'gtin' && self::shopHasGtinField()) {
+            $state['global_unique_id'] = $product->ean;
+        }
+
         $state['_mp_stock_status'] = $availability;
         $state['_mp_stock_label'] = $availability === 'unknown' ? '' : (StockAvailability::STATUS_LABELS[$availability] ?? '');
         $state['_mp_stock_next_date'] = $product->availability_date?->toDateString() ?? '';
@@ -181,6 +188,7 @@ class ShopSync
     public function mirrorState(WooProduct $woo): array
     {
         return [
+            'global_unique_id' => $woo->ean_source === 'gtin' ? $woo->ean : '',
             'regular_price' => WooProductData::price($woo->regular_price),
             'sale_price' => WooProductData::price($woo->sale_price),
             'stock_status' => $woo->stock_status,
@@ -296,6 +304,13 @@ class ShopSync
     }
 
     private const STOCK_STATUS_LABELS = ['instock' => 'op voorraad', 'onbackorder' => 'nalevering', 'outofstock' => 'uitverkocht'];
+
+    private static function shopHasGtinField(): bool
+    {
+        $version = ShopConnection::current()?->woo_version;
+
+        return $version === null || version_compare($version, '9.2', '>=');
+    }
 
     private static function show(mixed $value, ?string $key = null): string
     {

@@ -4,6 +4,7 @@ namespace App\Pricing;
 
 use App\Models\JobRun;
 use App\Models\PriceList;
+use App\Support\Brands;
 use App\Support\Parse;
 use App\Support\Spreadsheet;
 use Illuminate\Support\Facades\DB;
@@ -152,36 +153,70 @@ class PriceListImporter
         return sprintf('%d regels ingelezen, waarvan %d zonder EAN', count($rows), $withoutEan);
     }
 
-    /** Rows without EAN: look the manufacturer part number up at the suppliers; use it when unambiguous. */
+    /**
+     * Rows without EAN: look them up when exactly one EAN fits. Keys tried per row: the part number,
+     * and the model in the description ("Yealink MVC860-C5-000" -> "MVC860-C5-000"; Midwich puts
+     * an order number in the part number column and the model in the name). Looked up at the
+     * suppliers (manufacturer part number) and in the webshop (product SKU).
+     */
     private function resolveEansByMpn(array $rows, ?string $brand): array
     {
-        $missing = array_values(array_unique(array_filter(array_map(
-            fn ($r) => $r['ean'] === null && $r['mpn'] ? mb_strtolower($r['mpn']) : null, $rows
-        ))));
+        $keysPerRow = [];
 
+        foreach ($rows as $i => $row) {
+            if ($row['ean'] !== null) {
+                continue;
+            }
+
+            $keys = array_filter([$row['mpn'], self::modelFromDescription($row['description'], $brand)]);
+            $keysPerRow[$i] = array_values(array_unique(array_map(fn ($k) => mb_strtolower(trim($k)), $keys)));
+        }
+
+        $allKeys = array_values(array_unique(array_merge([], ...array_values($keysPerRow))));
         $found = [];
 
-        foreach (array_chunk($missing, 500) as $chunk) {
+        foreach (array_chunk($allKeys, 500) as $chunk) {
             DB::table('supplier_items')
                 ->whereNotNull('ean')
+                ->where('is_listed', true)
                 ->whereIn(DB::raw('lower(mpn)'), $chunk)
-                ->when($brand, fn ($q) => $q->whereRaw('lower(brand) = ?', [mb_strtolower($brand)]))
-                ->get(['mpn', 'ean'])
-                ->each(function ($item) use (&$found) {
-                    $found[mb_strtolower($item->mpn)][$item->ean] = true;
+                ->when($brand, fn ($q) => $q->whereRaw('lower(brand) = ?', [mb_strtolower((string) Brands::canonical($brand))]))
+                ->get(['mpn as k', 'ean'])
+                ->concat(DB::table('products')->whereNotNull('ean')->whereIn(DB::raw('lower(sku)'), $chunk)->get(['sku as k', 'ean']))
+                ->each(function ($hit) use (&$found) {
+                    $found[mb_strtolower($hit->k)][$hit->ean] = true;
                 });
         }
 
-        return array_map(function ($row) use ($found) {
-            $eans = $row['ean'] === null && $row['mpn'] ? array_keys($found[mb_strtolower($row['mpn'])] ?? []) : [];
+        foreach ($keysPerRow as $i => $keys) {
+            $eans = [];
 
-            if (count($eans) === 1) {
-                $row['ean'] = (string) $eans[0];
-                $row['ean_source'] = 'mpn';
+            foreach ($keys as $key) {
+                // Short keys ("100", "A1") match too easily.
+                if (mb_strlen($key) >= 4) {
+                    $eans += $found[$key] ?? [];
+                }
             }
 
-            return $row;
-        }, $rows);
+            if (count($eans) === 1) {
+                $rows[$i]['ean'] = (string) array_key_first($eans);
+                $rows[$i]['ean_source'] = 'mpn';
+            }
+        }
+
+        return $rows;
+    }
+
+    /** The model in a description like "Yealink MVC860-C5-000": everything after the brand (or the first word). */
+    private static function modelFromDescription(?string $description, ?string $brand): ?string
+    {
+        $description = trim((string) $description);
+
+        $model = $brand && stripos($description, $brand.' ') === 0
+            ? substr($description, strlen($brand) + 1)
+            : (str_contains($description, ' ') ? substr($description, strpos($description, ' ') + 1) : null);
+
+        return $model !== null && preg_match('/\d/', $model) ? trim($model) : null;
     }
 
     public static function path(PriceList $list): string

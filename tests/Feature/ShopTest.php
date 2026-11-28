@@ -9,6 +9,7 @@ use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Filament\Resources\Products\ProductResource;
 use App\Filament\Resources\ShopConnections\Pages\EditShopConnection;
 use App\Filament\Resources\ShopConnections\ShopConnectionResource;
+use App\Filament\Resources\WooProducts\Pages\ListWooProducts;
 use App\Filament\Resources\WooProducts\WooProductResource;
 use App\Jobs\LinkShopProducts;
 use App\Jobs\ProcessWooWebhook;
@@ -357,5 +358,33 @@ class ShopTest extends TestCase
             ->assertStructuredContentPath('products.0.purchase_source', 'list')
             ->assertStructuredContentPath('products.0.margin_percent', 19.8)
             ->assertStructuredContentPath('products.0.availability', 'ample');
+    }
+
+    public function test_a_shop_product_without_ean_gets_a_suggestion_via_its_sku_and_can_be_linked(): void
+    {
+        // The HDMI cable (SKU "KABEL") has no EAN in the shop; a supplier has part number "kabel" with an EAN.
+        SupplierItem::create(['supplier_id' => Supplier::where('code', 'copaco')->sole()->id, 'sku' => 'CP-7', 'mpn' => 'kabel', 'ean' => '4006381333948', 'is_listed' => true]);
+
+        $this->refreshAndLink();
+
+        $woo = WooProduct::where('sku', 'KABEL')->sole();
+        $this->assertSame('ean_suggested', $woo->match_status);
+        $this->assertSame('4006381333948', $woo->suggested_ean);
+        $this->assertSame('Copaco CP-7', $woo->suggested_from);
+
+        $this->actingAs(User::factory()->create());
+        Livewire::test(ListWooProducts::class)->callTableAction('accept_ean', $woo);
+
+        $product = Product::where('woo_id', 103)->sole();
+        $this->assertSame('4006381333948', $product->ean);
+        $this->assertSame('linked', $woo->fresh()->match_status);
+
+        // With writing on, the EAN goes into the shop's GTIN field; products that have it there already are left alone.
+        $this->shop->update(['is_active' => true, 'woo_version' => '9.8.5']);
+        (new SyncShopProducts)->handle(app(ShopSync::class));
+        $updates = collect($this->batches[0]['update'])->keyBy('id');
+        $this->assertSame('4006381333948', $updates[103]['global_unique_id']);
+        $this->assertSame('4006381333931', $updates[102]['global_unique_id']); // was only in an attribute
+        $this->assertArrayNotHasKey('global_unique_id', $updates[101]);      // already in the GTIN field
     }
 }
